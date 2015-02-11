@@ -1,0 +1,46 @@
+{
+  "name": "flora-solr",
+  "version": "0.0.0",
+  "description": "Solr connection for Flora",
+  "main": "index.js",
+  "scripts": {
+    "test": "make test"
+  },
+  "author": {
+    "name": "BörseGo AG",
+    "email": "it@boerse-go.de"
+  },
+  "homepage": "https://github.com/godmodelabs/flora-solr",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/godmodelabs/flora-solr.git"
+  },
+  "contributors": [
+    {
+      "name": "Marco Baumgartl",
+      "email": "marco.baumgartl@boerse-go.de"
+    },
+    {
+      "name": "Nico Kaiser",
+      "email": "nico.kaiser@boerse-go.de"
+    },
+    {
+      "name": "Mark Plomer",
+      "email": "mark.plomer@boerse-go.de"
+    }
+  ],
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "dependencies": {
+    "lodash": "3.5.x"
+  },
+  "devDependencies": {
+    "chai": "2.1.x",
+    "eslint": "0.17.0",
+    "istanbul": "0.3.x",
+    "mocha": "2.1.x",
+    "nock": "1.1.x"
+  }
+}
