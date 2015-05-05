@@ -38,7 +38,7 @@
   },
   "devDependencies": {
     "chai": "2.1.x",
-    "eslint": "0.17.0",
+    "eslint": "0.20.0",
     "grunt": "0.4.x",
     "grunt-cli": "^0.1.13",
     "grunt-contrib-clean": "0.6.x",
