@@ -365,6 +365,15 @@ describe('Flora SOLR DataSource', function () {
             });
         });
 
+        it('should overwrite SOLR default limit for sub-resource processing', function (done) {
+            nock(solrUrl)
+                .post(solrIndexPath, /rows=1000000/)
+                .reply(200, testResponse);
+
+            // no explicit limit set
+            dataSource.process({ core: 'article' }, done);
+        });
+
         it('should set page', function (done) {
             nock(solrUrl)
                 // only return sorted pagination params because they can appear in any order

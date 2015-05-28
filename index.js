@@ -32,12 +32,12 @@ DataSource.prototype.process = function (request, callback) {
     if (request.search) filters.push(escapeSpecialChars(request.search));
     if (request.filter) filters.push(buildSolrFilterString(request.filter));
     if (request.order) params.push('sort=' + encodeURIComponent(buildSolrOrderString(request.order)));
-    if (request.limit) {
-        params.push('rows=' + request.limit);
-        if (request.page) params.push('start=' + (request.page - 1) * request.limit);
-    }
 
     if (filters.length) queryString = encodeURIComponent(filters.join(' AND '));
+
+    if (!request.limit) request.limit = 1000000; // overwrite SOLR default limit for sub-resource processing
+    if (request.page) params.push('start=' + (request.page - 1) * request.limit);
+    params.push('rows=' + request.limit);
 
     params.push('q=' + queryString);
     querySolr(requestOpts, params, callback);
