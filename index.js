@@ -10,7 +10,12 @@ var http = require('http'),
  * @param {Object} config
  */
 var DataSource = module.exports = function (api, config) {
-    this.options = _.assign(url.parse(config.url), { method: 'POST', headers: {} });
+    this.options = config;
+
+    // create config object for http.request method
+    this.options.servers = _.mapValues(config.servers, function (server) {
+        return _.assign(url.parse(server.url), { method: 'POST', headers: {} });
+    });
 };
 
 /**
@@ -23,10 +28,17 @@ DataSource.prototype.prepare = function () {};
  * @param {Function} callback
  */
 DataSource.prototype.process = function (request, callback) {
-    var requestOpts = _.assign({}, this.options, { path: this.options.pathname + request.core + '/select' }),
+    var options,
+        requestOpts,
+        server = request.server,
         params = ['wt=json'],
         queryString = '*:*',
         filters = [];
+
+    if (!this.options.servers[server]) return callback(new Error('Server "' + server + '" not defined'));
+
+    options = this.options.servers[server];
+    requestOpts = _.assign({}, options, { path: options.pathname + request.core + '/select' });
 
     if (request.attributes) params.push('fl=' + request.attributes.join(','));
     if (request.search) filters.push(escapeSpecialChars(request.search));
