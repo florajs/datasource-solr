@@ -30,7 +30,7 @@ DataSource.prototype.prepare = function () {};
 DataSource.prototype.process = function (request, callback) {
     var options,
         requestOpts,
-        server = request.server,
+        server = request.server || 'default',
         params = ['wt=json'],
         queryString = '*:*',
         filters = [];
