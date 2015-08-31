@@ -11,10 +11,11 @@ function escapeRegex(s) {
 }
 
 describe('Flora SOLR DataSource', function () {
-    var dataSource,
-        solrUrl = 'http://example.com',
+    var solrUrl = 'http://example.com',
         solrIndexPath = '/solr/article/select',
-        testResponse = '{"response":{"numFound":0,"docs":[]}}';
+        testResponse = '{"response":{"numFound":0,"docs":[]}}',
+        dataSource,
+        req;
 
     var api = {};
 
@@ -26,6 +27,11 @@ describe('Flora SOLR DataSource', function () {
             };
 
         dataSource = new FloraSolr(api, cfg);
+    });
+
+    afterEach(function () {
+        if (req) req.done();
+        nock.cleanAll();
     });
 
     after(function () {
@@ -43,7 +49,7 @@ describe('Flora SOLR DataSource', function () {
     });
 
     it('should send requests using POST method', function (done) {
-        nock(solrUrl)
+        req = nock(solrUrl)
             .post(solrIndexPath)
             .reply(200, testResponse);
 
@@ -51,7 +57,7 @@ describe('Flora SOLR DataSource', function () {
     });
 
     it('should set content type to "application/x-www-form-urlencoded"', function (done) {
-        nock(solrUrl)
+        req = nock(solrUrl)
             .matchHeader('content-type', 'application/x-www-form-urlencoded')
             .post(solrIndexPath)
             .reply(200, testResponse);
@@ -60,7 +66,7 @@ describe('Flora SOLR DataSource', function () {
     });
 
     it('should set response format to JSON', function (done) {
-        nock(solrUrl)
+        req = nock(solrUrl)
             .post(solrIndexPath, /wt=json/)
             .reply(200, testResponse);
 
@@ -68,7 +74,7 @@ describe('Flora SOLR DataSource', function () {
     });
 
     it('should use "default" if no explicit server is specified', function (done) {
-        nock(solrUrl)
+        req = nock(solrUrl)
             .post(solrIndexPath)
             .reply(200, testResponse);
 
@@ -120,7 +126,7 @@ describe('Flora SOLR DataSource', function () {
         it('should set error in callback if request was not successful', function (done) {
             var httpStatusCode = 500;
 
-            nock(solrUrl)
+            req = nock(solrUrl)
                 .post(solrIndexPath)
                 .reply(httpStatusCode);
 
@@ -164,7 +170,7 @@ describe('Flora SOLR DataSource', function () {
         it('should set requested attributes', function (done) {
             var request = { core: 'article', attributes: ['id', 'name', 'date'] };
 
-            nock(solrUrl)
+            req = nock(solrUrl)
                 .post(solrIndexPath, /fl=id,name,date/)
                 .reply(200, testResponse);
 
@@ -175,7 +181,7 @@ describe('Flora SOLR DataSource', function () {
     describe('filters', function () {
 
         it('should send "*:*" if no filter is set', function (done) {
-            nock(solrUrl)
+            req = nock(solrUrl)
                 .post(solrIndexPath, /q=\*:\*/)
                 .reply(200, testResponse);
 
@@ -193,7 +199,7 @@ describe('Flora SOLR DataSource', function () {
                     },
                     paramRegex = new RegExp('q=\\(foo%3A' + conversionTarget + '\\)');
 
-                nock(solrUrl)
+                req = nock(solrUrl)
                     .post(solrIndexPath, paramRegex)
                     .reply(200, testResponse);
 
@@ -210,7 +216,7 @@ describe('Flora SOLR DataSource', function () {
                 },
                 paramRegex = new RegExp('q=\\(foo%3A\\(' + encodeURIComponent('1 OR 3 OR 5 OR 7') + '\\)');
 
-            nock(solrUrl)
+            req = nock(solrUrl)
                 .post(solrIndexPath, paramRegex)
                 .reply(200, testResponse);
 
@@ -232,7 +238,7 @@ describe('Flora SOLR DataSource', function () {
                     encodedChar = encodeURIComponent(character),
                     paramRegex = new RegExp('q=\\(foo%3A%5C' + escapeRegex(encodedChar) + 'bar\\)');
 
-                nock(solrUrl)
+                req = nock(solrUrl)
                     .post(solrIndexPath, paramRegex)
                     .reply(200, testResponse);
 
@@ -251,7 +257,7 @@ describe('Flora SOLR DataSource', function () {
                     encodedRangeQuery = encodeURIComponent('foo:[1337 TO *]'),
                     rangeQueryRegex = new RegExp('q=\\(' + escapeRegex(encodedRangeQuery) + '\\)');
 
-                nock(solrUrl)
+                req = nock(solrUrl)
                     .post(solrIndexPath, rangeQueryRegex)
                     .reply(200, testResponse);
 
@@ -268,7 +274,7 @@ describe('Flora SOLR DataSource', function () {
                     encodedRangeQuery = encodeURIComponent('foo:[* TO 1337]'),
                     rangeQueryRegex = new RegExp('q=\\(' + escapeRegex(encodedRangeQuery) + '\\)');
 
-                nock(solrUrl)
+                req = nock(solrUrl)
                     .post(solrIndexPath, rangeQueryRegex)
                     .reply(200, testResponse);
 
@@ -288,7 +294,7 @@ describe('Flora SOLR DataSource', function () {
                     encodedRangeQuery = encodeURIComponent('foo:[1337 TO 4711]'),
                     rangeQueryRegex = new RegExp('q=\\(' + escapeRegex(encodedRangeQuery) + '\\)');
 
-                nock(solrUrl)
+                req = nock(solrUrl)
                     .post(solrIndexPath, rangeQueryRegex)
                     .reply(200, testResponse);
 
@@ -304,7 +310,7 @@ describe('Flora SOLR DataSource', function () {
                     ]
                 };
 
-            nock(solrUrl)
+            req = nock(solrUrl)
                 .post(solrIndexPath, /q=\(foo%3Afoo\)/)
                 .reply(200, testResponse);
 
@@ -325,7 +331,7 @@ describe('Flora SOLR DataSource', function () {
                 encodedParams = encodeURIComponent('(authorId:1337 AND typeId:4711) OR (status:future)'),
                 paramRegex = new RegExp('q=' + encodedParams.replace(/(\(|\))/g, '\\$1'));
 
-            nock(solrUrl)
+            req = nock(solrUrl)
                 .post(solrIndexPath, paramRegex)
                 .reply(200, testResponse);
 
@@ -354,7 +360,7 @@ describe('Flora SOLR DataSource', function () {
             solrQuery += '(intKey:4711 AND stringKey:bar\\! AND boolKey:0))';
             paramRegex = new RegExp('q=' + encodeURIComponent(solrQuery).replace(/(\(|\))/g, '\\$1'));
 
-            nock(solrUrl)
+            req = nock(solrUrl)
                 .post('/solr/awesome_index/select', paramRegex)
                 .reply(200, testResponse);
 
@@ -371,7 +377,7 @@ describe('Flora SOLR DataSource', function () {
                 solrQuery = 'fo\\(o\\)bar',
                 paramRegex = new RegExp('q=' + encodeURIComponent(solrQuery).replace(/(\(|\))/g, '\\$1'));
 
-            nock(solrUrl)
+            req = nock(solrUrl)
                 .post(solrIndexPath, paramRegex)
                 .reply(200, testResponse);
 
@@ -389,7 +395,7 @@ describe('Flora SOLR DataSource', function () {
                 solrQuery = 'foobar AND (authorId:1337)',
                 paramRegex = new RegExp('q=' + encodeURIComponent(solrQuery).replace(/(\(|\))/g, '\\$1'));
 
-            nock(solrUrl)
+            req = nock(solrUrl)
                 .post(solrIndexPath, paramRegex)
                 .reply(200, testResponse);
 
@@ -404,7 +410,7 @@ describe('Flora SOLR DataSource', function () {
                 order: [{ attribute: 'foo', direction: 'asc' }]
             };
 
-            nock(solrUrl)
+            req = nock(solrUrl)
                 .post(solrIndexPath, /sort=foo%20asc/)
                 .reply(200, testResponse);
 
@@ -420,7 +426,7 @@ describe('Flora SOLR DataSource', function () {
                 ]
             };
 
-            nock(solrUrl)
+            req = nock(solrUrl)
                 .post(solrIndexPath, /sort=foo%20asc%2Cbar%20desc/)
                 .reply(200, testResponse);
 
@@ -430,7 +436,7 @@ describe('Flora SOLR DataSource', function () {
 
     describe('pagination', function () {
         it('should set limit', function (done) {
-            nock(solrUrl)
+            req = nock(solrUrl)
                 .post(solrIndexPath, /rows=15/)
                 .reply(200, testResponse);
 
@@ -438,7 +444,7 @@ describe('Flora SOLR DataSource', function () {
         });
 
         it('should overwrite SOLR default limit for sub-resource processing', function (done) {
-            nock(solrUrl)
+            req = nock(solrUrl)
                 .post(solrIndexPath, /rows=1000000/)
                 .reply(200, testResponse);
 
@@ -447,7 +453,7 @@ describe('Flora SOLR DataSource', function () {
         });
 
         it('should set page', function (done) {
-            nock(solrUrl)
+            req = nock(solrUrl)
                 // only return sorted pagination params because they can appear in any order
                 .filteringRequestBody(function (body) {
                     var params = require('querystring').parse(body),
