@@ -38,7 +38,7 @@ DataSource.prototype.process = function (request, callback) {
     if (!this.options.servers[server]) return callback(new Error('Server "' + server + '" not defined'));
 
     options = this.options.servers[server];
-    requestOpts = _.assign({}, options, { path: options.pathname + request.core + '/select' });
+    requestOpts = _.assign({}, options, { path: options.pathname + request.collection + '/select' });
 
     if (request.attributes) params.push('fl=' + request.attributes.join(','));
     if (request.search) filters.push(escapeSpecialChars(request.search));

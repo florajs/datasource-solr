@@ -53,7 +53,7 @@ describe('Flora SOLR DataSource', function () {
             .post(solrIndexPath)
             .reply(200, testResponse);
 
-        dataSource.process({ core: 'article' }, done);
+        dataSource.process({ collection: 'article' }, done);
     });
 
     it('should set content type to "application/x-www-form-urlencoded"', function (done) {
@@ -62,7 +62,7 @@ describe('Flora SOLR DataSource', function () {
             .post(solrIndexPath)
             .reply(200, testResponse);
 
-        dataSource.process({ core: 'article' }, done);
+        dataSource.process({ collection: 'article' }, done);
     });
 
     it('should set response format to JSON', function (done) {
@@ -70,7 +70,7 @@ describe('Flora SOLR DataSource', function () {
             .post(solrIndexPath, /wt=json/)
             .reply(200, testResponse);
 
-        dataSource.process({ core: 'article' }, done);
+        dataSource.process({ collection: 'article' }, done);
     });
 
     it('should use "default" if no explicit server is specified', function (done) {
@@ -78,14 +78,14 @@ describe('Flora SOLR DataSource', function () {
             .post(solrIndexPath)
             .reply(200, testResponse);
 
-        dataSource.process({ core: 'article' }, done);
+        dataSource.process({ collection: 'article' }, done);
     });
 
     it('should support multiple servers', function (done) {
         var archiveReq, awesomeReq, requests,
             floraRequests = [
-                { core: 'archive' },
-                { server: 'other', core: 'awesome-index' }
+                { collection: 'archive' },
+                { server: 'other', collection: 'awesome-index' }
             ],
             ds = new FloraSolr(api, {
                 servers: {
@@ -130,7 +130,7 @@ describe('Flora SOLR DataSource', function () {
                 .post(solrIndexPath)
                 .reply(httpStatusCode);
 
-            dataSource.process({ core: 'article' }, function (err) {
+            dataSource.process({ collection: 'article' }, function (err) {
                 expect(err).to.be.instanceof(Error);
                 expect(err.code).to.equal(httpStatusCode);
                 done();
@@ -147,14 +147,14 @@ describe('Flora SOLR DataSource', function () {
             // nock can't fake request errors at the moment, so we have to make a real request to nonexistent host
             dataSource = new FloraSolr(api, cfg);
 
-            dataSource.process({ core: 'article' }, function (err) {
+            dataSource.process({ collection: 'article' }, function (err) {
                 expect(err).to.be.instanceof(Error);
                 done();
             });
         });
 
         it('should trigger an error for non-existent server', function (done) {
-            dataSource.process({ server: 'non-existent', core: 'article' }, function (err) {
+            dataSource.process({ server: 'non-existent', collection: 'article' }, function (err) {
                 if (err) {
                     expect(err).to.be.instanceOf(Error);
                     expect(err.message).to.contain('Server "non-existent" not defined');
@@ -168,7 +168,7 @@ describe('Flora SOLR DataSource', function () {
 
     describe('attributes', function () {
         it('should set requested attributes', function (done) {
-            var request = { core: 'article', attributes: ['id', 'name', 'date'] };
+            var request = { collection: 'article', attributes: ['id', 'name', 'date'] };
 
             req = nock(solrUrl)
                 .post(solrIndexPath, /fl=id,name,date/)
@@ -185,14 +185,14 @@ describe('Flora SOLR DataSource', function () {
                 .post(solrIndexPath, /q=\*:\*/)
                 .reply(200, testResponse);
 
-            dataSource.process({ core: 'article' }, done);
+            dataSource.process({ collection: 'article' }, done);
         });
 
         // test conversion of boolean values
         _({ false: 0, true: 1 }).forEach(function(conversionTarget, booleanValue) {
             it('should transform boolean ' + booleanValue + ' value to ' + conversionTarget + '', function (done) {
                 var request = {
-                        core: 'article',
+                        collection: 'article',
                         filter: [
                             [{ attribute: 'foo', operator: 'equal', value: booleanValue !== 'false' }]
                         ]
@@ -209,7 +209,7 @@ describe('Flora SOLR DataSource', function () {
 
         it('should support arrays', function (done) {
             var request = {
-                    core: 'article',
+                    collection: 'article',
                     filter: [
                         [{attribute: 'foo', operator: 'equal', value: [1, 3, 5, 7]}]
                     ]
@@ -230,7 +230,7 @@ describe('Flora SOLR DataSource', function () {
         specialChars.forEach(function (character) {
             it('should escape special character ' + character, function (done) {
                 var request = {
-                        core: 'article',
+                        collection: 'article',
                         filter: [
                             [{ attribute: 'foo', operator: 'equal', value: character + 'bar' }]
                         ]
@@ -249,7 +249,7 @@ describe('Flora SOLR DataSource', function () {
         describe('range queries', function () {
             it('should support fixed lower boundaries', function (done) {
                 var request = {
-                        core: 'article',
+                        collection: 'article',
                         filter: [
                             [{ attribute: 'foo', operator: 'greaterOrEqual', value: 1337 }]
                         ]
@@ -266,7 +266,7 @@ describe('Flora SOLR DataSource', function () {
 
             it('should support fixed upper boundaries', function (done) {
                 var request = {
-                        core: 'article',
+                        collection: 'article',
                         filter: [
                             [{ attribute: 'foo', operator: 'lessOrEqual', value: 1337 }]
                         ]
@@ -283,7 +283,7 @@ describe('Flora SOLR DataSource', function () {
 
             it('should support fixed lower and upper boundaries', function (done) {
                 var request = {
-                        core: 'article',
+                        collection: 'article',
                         filter: [
                             [
                                 { attribute: 'foo', operator: 'greaterOrEqual', value: 1337 },
@@ -304,7 +304,7 @@ describe('Flora SOLR DataSource', function () {
 
         it('should transform single filters', function (done) {
             var request = {
-                    core: 'article',
+                    collection: 'article',
                     filter: [
                         [{ attribute: 'foo', operator: 'equal', value: 'foo' }]
                     ]
@@ -319,7 +319,7 @@ describe('Flora SOLR DataSource', function () {
 
         it('should transform complex filters', function (done) {
             var request = {
-                    core: 'article',
+                    collection: 'article',
                     filter: [
                         [
                             { attribute: 'authorId', operator: 'equal', value: 1337 },
@@ -340,7 +340,7 @@ describe('Flora SOLR DataSource', function () {
 
         it('should support composite key filters', function (done) {
             var request = {
-                    core: 'awesome_index',
+                    collection: 'awesome_index',
                     filter: [
                         [
                             {
@@ -371,7 +371,7 @@ describe('Flora SOLR DataSource', function () {
     describe('full-text search', function () {
         it('should add search term to query', function (done) {
             var request = {
-                    core: 'article',
+                    collection: 'article',
                     search: 'fo(o)bar'
                 },
                 solrQuery = 'fo\\(o\\)bar',
@@ -386,7 +386,7 @@ describe('Flora SOLR DataSource', function () {
 
         it('should support additional filter(s)', function (done) {
             var request = {
-                    core: 'article',
+                    collection: 'article',
                     search: 'foobar',
                     filter: [
                         [{ attribute: 'authorId', operator: 'equal', value: 1337 }]
@@ -406,7 +406,7 @@ describe('Flora SOLR DataSource', function () {
     describe('order', function () {
         it('single criterion', function (done) {
             var request = {
-                core: 'article',
+                collection: 'article',
                 order: [{ attribute: 'foo', direction: 'asc' }]
             };
 
@@ -419,7 +419,7 @@ describe('Flora SOLR DataSource', function () {
 
         it('multiple criteria', function (done) {
             var request = {
-                core: 'article',
+                collection: 'article',
                 order: [
                     { attribute: 'foo', direction: 'asc' },
                     { attribute: 'bar', direction: 'desc' }
@@ -440,7 +440,7 @@ describe('Flora SOLR DataSource', function () {
                 .post(solrIndexPath, /rows=15/)
                 .reply(200, testResponse);
 
-            dataSource.process({ core: 'article', limit: 15 }, done);
+            dataSource.process({ collection: 'article', limit: 15 }, done);
         });
 
         it('should overwrite SOLR default limit for sub-resource processing', function (done) {
@@ -449,7 +449,7 @@ describe('Flora SOLR DataSource', function () {
                 .reply(200, testResponse);
 
             // no explicit limit set
-            dataSource.process({ core: 'article' }, done);
+            dataSource.process({ collection: 'article' }, done);
         });
 
         it('should set page', function (done) {
@@ -470,7 +470,7 @@ describe('Flora SOLR DataSource', function () {
                 .post(solrIndexPath, /rows=10&start=20/)
                 .reply(200, testResponse);
 
-            dataSource.process({ core: 'article', limit: 10, page: 3 }, done);
+            dataSource.process({ collection: 'article', limit: 10, page: 3 }, done);
         });
     });
 });
