@@ -52,6 +52,12 @@ DataSource.prototype.process = function (request, callback) {
     params.push('rows=' + request.limit);
 
     params.push('q=' + queryString);
+
+    if (request._explain) {
+        request._explain.href = requestOpts.href;
+        request._explain.params = params;
+    }
+
     querySolr(requestOpts, params, callback);
 };
 
