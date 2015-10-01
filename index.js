@@ -102,8 +102,8 @@ function rangify(filters) {
     });
 
     return filters.filter(function (filter) { // copy non-range query attributes
-            return rangeQueryAttrs.indexOf(filter.attribute) === -1;
-        })
+        return rangeQueryAttrs.indexOf(filter.attribute) === -1;
+    })
         .concat(rangeQueries.map(createRangeFilter));
 }
 
