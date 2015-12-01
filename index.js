@@ -1,8 +1,10 @@
 'use strict';
 
-var http = require('http'),
-    url = require('url'),
-    _ = require('lodash');
+var http = require('http');
+var url = require('url');
+
+var _ = require('lodash');
+var RequestError = require('flora-errors').RequestError;
 
 /**
  * @constructor
@@ -212,6 +214,14 @@ function buildSolrOrderString(floraOrders) {
     return orderCriteria.join(',');
 }
 
+function parseData(str) {
+    try {
+        return JSON.parse(str);
+    } catch (e) {
+        return new Error('Couldn\'t parse response: ' + str);
+    }
+}
+
 /**
  *
  * @param {Object} options
@@ -234,13 +244,20 @@ function querySolr(options, params, callback) {
         res.on('end', function () {
             var data, error;
 
-            if (res.statusCode >= 400) {
-                error = new Error(http.STATUS_CODES[res.statusCode]);
-                error.code = res.statusCode;
+            data = parseData(str);
+            if (res.statusCode >= 400 || data instanceof Error) {
+                if (!(data instanceof Error)) {
+                    if (res.statusCode > 400) error = new Error(http.STATUS_CODES[res.statusCode]);
+                    else if (res.statusCode === 400) error = new RequestError(data.error.msg);
+                    error.code = res.statusCode;
+                } else {
+                    error = data;
+                    error.code = 502;
+                }
+
                 return callback(error);
             }
 
-            data = JSON.parse(str);
             callback(null, { totalCount: data.response.numFound, data: data.response.docs });
         });
     });

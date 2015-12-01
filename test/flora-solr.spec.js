@@ -1,10 +1,12 @@
 'use strict';
 
-var expect = require('chai').expect,
-    _ = require('lodash'),
-    Promise = require('when').Promise,
-    FloraSolr = require('../index'),
-    nock = require('nock');
+var expect = require('chai').expect;
+var _ = require('lodash');
+var Promise = require('when').Promise;
+var nock = require('nock');
+
+var FloraSolr = require('../index');
+var RequestError = require('flora-errors').RequestError;
 
 function escapeRegex(s) {
     return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
@@ -123,16 +125,44 @@ describe('Flora SOLR DataSource', function () {
     });
 
     describe('error handling', function () {
-        it('should set error in callback if request was not successful', function (done) {
+        it('should trigger general error if status code is greater than 400', function (done) {
             var httpStatusCode = 500;
 
             req = nock(solrUrl)
                 .post(solrIndexPath)
-                .reply(httpStatusCode);
+                .reply(httpStatusCode, '{}');
 
             dataSource.process({ collection: 'article' }, function (err) {
                 expect(err).to.be.instanceof(Error);
                 expect(err.code).to.equal(httpStatusCode);
+                done();
+            });
+        });
+
+        it('should trigger RequestError if status code equals 400', function (done) {
+            var httpStatusCode = 400;
+
+            req = nock(solrUrl)
+                .post(solrIndexPath)
+                .reply(httpStatusCode, '{"error":{"msg":"Invalid parameter..."}}');
+
+            dataSource.process({ collection: 'article' }, function (err) {
+                expect(err).to.be.instanceof(RequestError);
+                expect(err.message).to.equal('Invalid parameter...');
+                expect(err.code).to.equal(httpStatusCode);
+                done();
+            });
+        });
+
+        it('should trigger an error if response cannot be parsed', function (done) {
+            req = nock(solrUrl)
+                .post(solrIndexPath)
+                .reply(418, '<p>Something went wrong</p>');
+
+            dataSource.process({ collection: 'article' }, function (err) {
+                expect(err).to.be.instanceof(Error);
+                expect(err.message).to.contain('<p>Something went wrong</p>');
+                expect(err.code).to.equal(502);
                 done();
             });
         });
