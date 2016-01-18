@@ -4,7 +4,9 @@ var http = require('http');
 var url = require('url');
 
 var _ = require('lodash');
-var RequestError = require('flora-errors').RequestError;
+var errors = require('flora-errors');
+var RequestError = errors.RequestError;
+var ImplementationError = errors.ImplementationError;
 
 /**
  * @constructor
@@ -44,8 +46,15 @@ DataSource.prototype.process = function (request, callback) {
 
     if (request.attributes) params.push('fl=' + request.attributes.join(','));
     if (request.search) filters.push(escapeSpecialChars(request.search));
-    if (request.filter) filters.push(buildSolrFilterString(request.filter));
     if (request.order) params.push('sort=' + encodeURIComponent(buildSolrOrderString(request.order)));
+
+    if (request.filter) {
+        try {
+            filters.push(buildSolrFilterString(request.filter));
+        } catch (e) {
+            return callback(e);
+        }
+    }
 
     if (filters.length) queryString = encodeURIComponent(filters.join(' AND '));
 
@@ -154,6 +163,10 @@ function createRangeFilter(attributeFilters) {
 function convertFilterToSolrSyntax(filter) {
     var value = filter.value,
         operator = filter.operator;
+
+    if (filter.operator === 'less' || filter.operator === 'greater') {
+        throw new ImplementationError('DataSource "flora-solr" does not support "' + filter.operator + '" filters');
+    }
 
     if (! Array.isArray(filter.attribute)) {
         value = prepareValueForSolr(value);

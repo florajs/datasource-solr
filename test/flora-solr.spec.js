@@ -6,7 +6,9 @@ var Promise = require('when').Promise;
 var nock = require('nock');
 
 var FloraSolr = require('../index');
-var RequestError = require('flora-errors').RequestError;
+var errors = require('flora-errors');
+var RequestError = errors.RequestError;
+var ImplementationError = errors.ImplementationError;
 
 function escapeRegex(s) {
     return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
@@ -194,6 +196,23 @@ describe('Flora SOLR DataSource', function () {
                 done(new Error('To access a non-existent server should trigger an error'));
             });
         });
+
+        ['less', 'greater'].forEach(function (operator) {
+            it('should trigger an error for unsupported filter operator "' + operator + '"', function (done) {
+                var request = {
+                    collection: 'article',
+                    filter: [
+                        [{attribute: 'date', operator: operator, value: '2015-12-31'}]
+                    ]
+                };
+
+                dataSource.process(request, function (err) {
+                    expect(err).to.be.instanceOf(ImplementationError);
+                    expect(err.message).to.contain('not support "' + operator + '" filters')
+                    done();
+                });
+            });
+        });
     });
 
     describe('attributes', function () {
@@ -219,7 +238,7 @@ describe('Flora SOLR DataSource', function () {
         });
 
         // test conversion of boolean values
-        _({ false: 0, true: 1 }).forEach(function(conversionTarget, booleanValue) {
+        _({ false: 0, true: 1 }).forEach(function (conversionTarget, booleanValue) {
             it('should transform boolean ' + booleanValue + ' value to ' + conversionTarget + '', function (done) {
                 var request = {
                         collection: 'article',
