@@ -8,6 +8,8 @@ var errors = require('flora-errors');
 var RequestError = errors.RequestError;
 var ImplementationError = errors.ImplementationError;
 
+var SUPPORTED_FILTERS = ['equal', 'notEqual', 'lessOrEqual', 'greaterOrEqual', 'range'];
+
 /**
  * @constructor
  * @param {Api} api
@@ -164,21 +166,24 @@ function convertFilterToSolrSyntax(filter) {
     var value = filter.value,
         operator = filter.operator;
 
-    if (filter.operator === 'less' || filter.operator === 'greater') {
+    if (SUPPORTED_FILTERS.indexOf(filter.operator) === -1) {
         throw new ImplementationError('DataSource "flora-solr" does not support "' + filter.operator + '" filters');
     }
 
-    if (! Array.isArray(filter.attribute)) {
+    if (!Array.isArray(filter.attribute)) {
         value = prepareValueForSolr(value);
         if (Array.isArray(value)) {
             if (operator === 'range') value = '[' + value[0] + ' TO ' + value[1] + ']';
             else value = '(' + value.join(' OR ') + ')';
         }
 
-        if (operator === 'greaterOrEqual') value = '[' + value + ' TO *]';
-        if (operator === 'lessOrEqual') value = '[* TO ' + value + ']';
-
-        return filter.attribute + ':' + value;
+        if (operator !== 'notEqual') {
+            if (operator === 'greaterOrEqual') value = '[' + value + ' TO *]';
+            if (operator === 'lessOrEqual') value = '[* TO ' + value + ']';
+            return filter.attribute + ':' + value;
+        } else {
+            return '-' + filter.attribute + ':' + value;
+        }
     } else { // convert composite keys to SOLR syntax
         return value
             .map(function (values) {

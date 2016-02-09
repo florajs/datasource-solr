@@ -196,23 +196,6 @@ describe('Flora SOLR DataSource', function () {
                 done(new Error('To access a non-existent server should trigger an error'));
             });
         });
-
-        ['less', 'greater'].forEach(function (operator) {
-            it('should trigger an error for unsupported filter operator "' + operator + '"', function (done) {
-                var request = {
-                    collection: 'article',
-                    filter: [
-                        [{attribute: 'date', operator: operator, value: '2015-12-31'}]
-                    ]
-                };
-
-                dataSource.process(request, function (err) {
-                    expect(err).to.be.instanceOf(ImplementationError);
-                    expect(err.message).to.contain('not support "' + operator + '" filters')
-                    done();
-                });
-            });
-        });
     });
 
     describe('attributes', function () {
@@ -414,6 +397,47 @@ describe('Flora SOLR DataSource', function () {
                 .reply(200, testResponse);
 
             dataSource.process(request, done);
+        });
+
+        var supportedFilters = {
+            equal: /date%3A2015%5C-12%5C-31/,
+            greaterOrEqual: /date%3A%5B2015%5C-12%5C-31%20TO%20\*%5D/,
+            lessOrEqual: /date%3A%5B\*%20TO%202015%5C-12%5C-31%5D/,
+            notEqual: /\-date%3A2015%5C-12%5C-31/
+        };
+        Object.keys(supportedFilters).forEach(function (operator) {
+            it('should support "' + operator + '" filters', function (done) {
+                var paramRegEx = supportedFilters[operator],
+                    request = {
+                        collection: 'article',
+                        filter: [
+                            [{attribute: 'date', operator: operator, value: '2015-12-31'}]
+                        ]
+                    };
+
+                req = nock(solrUrl)
+                    .post('/solr/article/select', paramRegEx)
+                    .reply(200, testResponse);
+
+                dataSource.process(request, done);
+            });
+        });
+
+        ['less', 'greater'].forEach(function (operator) {
+            it('should trigger an error for unsupported filter operator "' + operator + '"', function (done) {
+                var request = {
+                    collection: 'article',
+                    filter: [
+                        [{attribute: 'date', operator: operator, value: '2015-12-31'}]
+                    ]
+                };
+
+                dataSource.process(request, function (err) {
+                    expect(err).to.be.instanceOf(ImplementationError);
+                    expect(err.message).to.contain('not support "' + operator + '" filters');
+                    done();
+                });
+            });
         });
     });
 
