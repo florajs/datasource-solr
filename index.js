@@ -37,7 +37,7 @@ DataSource.prototype.process = function (request, callback) {
     var options,
         requestOpts,
         server = request.server || 'default',
-        params = ['wt=json'],
+        params = { wt: 'json' },
         queryString = '*:*';
 
     if (!this.options.servers[server]) return callback(new Error('Server "' + server + '" not defined'));
@@ -45,8 +45,8 @@ DataSource.prototype.process = function (request, callback) {
     options = this.options.servers[server];
     requestOpts = _.assign({}, options, { path: options.pathname + request.collection + '/select' });
 
-    if (request.attributes) params.push('fl=' + request.attributes.join(','));
-    if (request.order) params.push('sort=' + encodeURIComponent(buildSolrOrderString(request.order)));
+    if (request.attributes) params.fl = request.attributes.join(',');
+    if (request.order) params.sort= encodeURIComponent(buildSolrOrderString(request.order));
 
     if (request.filter) {
         try {
@@ -61,10 +61,10 @@ DataSource.prototype.process = function (request, callback) {
     }
 
     if (!request.limit) request.limit = 1000000; // overwrite SOLR default limit for sub-resource processing
-    if (request.page) params.push('start=' + (request.page - 1) * request.limit);
-    params.push('rows=' + request.limit);
+    if (request.page) params.start =(request.page - 1) * request.limit;
+    params.rows = request.limit;
 
-    params.push('q=' + encodeURIComponent(queryString));
+    params.q = encodeURIComponent(queryString);
 
     if (request._explain) {
         request._explain.href = requestOpts.href;
@@ -243,7 +243,7 @@ function parseData(str) {
 /**
  *
  * @param {Object} options
- * @param {Array.<string>} params
+ * @param {Object} params
  * @param {Function} callback
  * @private
  */
@@ -280,7 +280,10 @@ function querySolr(options, params, callback) {
         });
     });
 
+    req.write(Object.keys(params).map(function (param) { // write params to POST body
+        return param + '=' + params[param];
+    }).join('&'));
+
     req.on('error', callback);
-    req.write(params.join('&'));
     req.end();
 }
