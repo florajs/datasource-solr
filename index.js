@@ -38,8 +38,7 @@ DataSource.prototype.process = function (request, callback) {
         requestOpts,
         server = request.server || 'default',
         params = ['wt=json'],
-        queryString = '*:*',
-        filters = [];
+        queryString = '*:*';
 
     if (!this.options.servers[server]) return callback(new Error('Server "' + server + '" not defined'));
 
@@ -47,24 +46,25 @@ DataSource.prototype.process = function (request, callback) {
     requestOpts = _.assign({}, options, { path: options.pathname + request.collection + '/select' });
 
     if (request.attributes) params.push('fl=' + request.attributes.join(','));
-    if (request.search) filters.push(escapeSpecialChars(request.search));
     if (request.order) params.push('sort=' + encodeURIComponent(buildSolrOrderString(request.order)));
 
     if (request.filter) {
         try {
-            filters.push(buildSolrFilterString(request.filter));
+            queryString = buildSolrFilterString(request.filter);
         } catch (e) {
             return callback(e);
         }
     }
 
-    if (filters.length) queryString = encodeURIComponent(filters.join(' AND '));
+    if (request.search) {
+        queryString = escapeValueForSolr(request.search) + (queryString !== '*:*' ? ' AND (' + queryString + ')' : '');
+    }
 
     if (!request.limit) request.limit = 1000000; // overwrite SOLR default limit for sub-resource processing
     if (request.page) params.push('start=' + (request.page - 1) * request.limit);
     params.push('rows=' + request.limit);
 
-    params.push('q=' + queryString);
+    params.push('q=' + encodeURIComponent(queryString));
 
     if (request._explain) {
         request._explain.href = requestOpts.href;
@@ -171,7 +171,7 @@ function convertFilterToSolrSyntax(filter) {
     }
 
     if (!Array.isArray(filter.attribute)) {
-        value = prepareValueForSolr(value);
+        value = escapeValueForSolr(value);
         if (Array.isArray(value)) {
             if (operator === 'range') value = '[' + value[0] + ' TO ' + value[1] + ']';
             else value = '(' + value.join(' OR ') + ')';
@@ -188,7 +188,7 @@ function convertFilterToSolrSyntax(filter) {
         return value
             .map(function (values) {
                 var conditions = values.map(function (val, index) {
-                    return filter.attribute[index] + ':' + prepareValueForSolr(val);
+                    return filter.attribute[index] + ':' + escapeValueForSolr(val);
                 });
                 return '(' + conditions.join(' AND ') + ')';
             })
@@ -203,7 +203,7 @@ function convertFilterToSolrSyntax(filter) {
  * @return {*}
  * @private
  */
-function prepareValueForSolr(value) {
+function escapeValueForSolr(value) {
     if (typeof value === 'string') value = escapeSpecialChars(value);
     else if (typeof value === 'boolean') value = value === false ? 0 : 1;
     return value;

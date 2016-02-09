@@ -214,7 +214,7 @@ describe('Flora SOLR DataSource', function () {
 
         it('should send "*:*" if no filter is set', function (done) {
             req = nock(solrUrl)
-                .post(solrIndexPath, /q=\*:\*/)
+                .post(solrIndexPath, /q=\*%3A\*/)
                 .reply(200, testResponse);
 
             dataSource.process({ collection: 'article' }, done);
@@ -352,6 +352,7 @@ describe('Flora SOLR DataSource', function () {
         it('should transform complex filters', function (done) {
             var request = {
                     collection: 'article',
+                    search: 'foo bar',
                     filter: [
                         [
                             { attribute: 'authorId', operator: 'equal', value: 1337 },
@@ -360,8 +361,7 @@ describe('Flora SOLR DataSource', function () {
                         [{ attribute: 'status', operator: 'equal', value: 'future' }]
                     ]
                 },
-                encodedParams = encodeURIComponent('(authorId:1337 AND typeId:4711) OR (status:future)'),
-                paramRegex = new RegExp('q=' + encodedParams.replace(/(\(|\))/g, '\\$1'));
+                paramRegex = /q=foo%20bar%20AND%20\(\(authorId%3A1337%20AND%20typeId%3A4711\)%20OR%20\(status%3Afuture\)\)/;
 
             req = nock(solrUrl)
                 .post(solrIndexPath, paramRegex)
@@ -444,14 +444,12 @@ describe('Flora SOLR DataSource', function () {
     describe('full-text search', function () {
         it('should add search term to query', function (done) {
             var request = {
-                    collection: 'article',
-                    search: 'fo(o)bar'
-                },
-                solrQuery = 'fo\\(o\\)bar',
-                paramRegex = new RegExp('q=' + encodeURIComponent(solrQuery).replace(/(\(|\))/g, '\\$1'));
+                collection: 'article',
+                search: 'fo(o)bar'
+            };
 
             req = nock(solrUrl)
-                .post(solrIndexPath, paramRegex)
+                .post(solrIndexPath, /q=fo%5C\(o%5C\)bar/)
                 .reply(200, testResponse);
 
             dataSource.process(request, done);
@@ -459,17 +457,15 @@ describe('Flora SOLR DataSource', function () {
 
         it('should support additional filter(s)', function (done) {
             var request = {
-                    collection: 'article',
-                    search: 'foobar',
-                    filter: [
-                        [{ attribute: 'authorId', operator: 'equal', value: 1337 }]
-                    ]
-                },
-                solrQuery = 'foobar AND (authorId:1337)',
-                paramRegex = new RegExp('q=' + encodeURIComponent(solrQuery).replace(/(\(|\))/g, '\\$1'));
+                collection: 'article',
+                search: 'foo bar',
+                filter: [
+                    [{ attribute: 'authorId', operator: 'equal', value: 1337 }]
+                ]
+            };
 
             req = nock(solrUrl)
-                .post(solrIndexPath, paramRegex)
+                .post(solrIndexPath, /q=foo%20bar%20AND%20\(\(authorId%3A1337\)\)/)
                 .reply(200, testResponse);
 
             dataSource.process(request, done);
