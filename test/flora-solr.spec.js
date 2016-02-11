@@ -542,4 +542,58 @@ describe('Flora SOLR DataSource', function () {
             dataSource.process({ collection: 'article', limit: 10, page: 3 }, done);
         });
     });
+
+    describe('limitPer', function () {
+        it('should activate result grouping', function (done) {
+            req = nock(solrUrl)
+                .post(solrIndexPath, /group=true/)
+                .reply(200, testResponse);
+
+            dataSource.process({ collection: 'article', limitPer: 'seriesId' }, done);
+        });
+
+        it('should use limitPer as group.field parameter', function (done) {
+            req = nock(solrUrl)
+                .post(solrIndexPath, /group\.field=seriesId/)
+                .reply(200, testResponse);
+
+            dataSource.process({ collection: 'article', limitPer: 'seriesId' }, done);
+        });
+
+        it('should return flat list instead of groups', function (done) {
+            req = nock(solrUrl)
+                .post(solrIndexPath, function (body) {
+                    return body.hasOwnProperty('group.format') && body['group.format'] === 'simple'
+                        && body.hasOwnProperty('group.main') && body['group.main'] === 'true';
+                })
+                .reply(200, testResponse);
+
+            dataSource.process({ collection: 'article', limitPer: 'seriesId'}, done);
+        });
+
+        it('should set limit', function (done) {
+            req = nock(solrUrl)
+                .post(solrIndexPath, function (body) {
+                    return body.hasOwnProperty('group.limit') && body['group.limit'] == 3
+                        && !body.hasOwnProperty('rows');
+                })
+                .reply(200, testResponse);
+
+            dataSource.process({ collection: 'article', limitPer: 'seriesId', limit: 3}, done);
+        });
+
+        it('should not set group sort order', function (done) {
+            req = nock(solrUrl)
+                .post(solrIndexPath, function (body) {
+                    return !body.hasOwnProperty('group.sort');
+                })
+                .reply(200, testResponse);
+
+            dataSource.process({
+                collection: 'article',
+                limitPer: 'seriesId',
+                order: [{ attribute: 'date', direction: 'desc' }]
+            }, done);
+        });
+    });
 });

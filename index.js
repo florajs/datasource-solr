@@ -61,8 +61,18 @@ DataSource.prototype.process = function (request, callback) {
     }
 
     if (!request.limit) request.limit = 1000000; // overwrite SOLR default limit for sub-resource processing
-    if (request.page) params.start =(request.page - 1) * request.limit;
-    params.rows = request.limit;
+    if (request.page) params.start = (request.page - 1) * request.limit;
+
+    if (!request.limitPer) params.rows = request.limit;
+    else {
+        params = _.assign(params, {
+            group: 'true',
+            'group.format': 'simple',
+            'group.main': 'true',
+            'group.field': request.limitPer,
+            'group.limit': request.limit
+        });
+    }
 
     params.q = encodeURIComponent(queryString);
 
@@ -280,7 +290,7 @@ function querySolr(options, params, callback) {
         });
     });
 
-    req.write(Object.keys(params).map(function (param) { // write params to POST body
+    req.write(Object.keys(params).map(function (param) { // add params to POST body
         return param + '=' + params[param];
     }).join('&'));
 
