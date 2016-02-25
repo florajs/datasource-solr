@@ -60,6 +60,8 @@ DataSource.prototype.process = function (request, callback) {
         queryString = escapeValueForSolr(request.search) + (queryString !== '*:*' ? ' AND (' + queryString + ')' : '');
     }
 
+    if (request.queryAddition) queryString += ' ' + prepareQueryAddition(request.queryAddition);
+
     if (!request.limit) request.limit = 1000000; // overwrite SOLR default limit for sub-resource processing
     if (request.page) params.start = (request.page - 1) * request.limit;
 
@@ -248,6 +250,13 @@ function parseData(str) {
     } catch (e) {
         return new Error('Couldn\'t parse response: ' + str);
     }
+}
+
+function prepareQueryAddition(queryAdditions) {
+    return queryAdditions
+        .replace(/[\r\n]+/g, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
 }
 
 /**

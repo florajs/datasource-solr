@@ -439,6 +439,19 @@ describe('Flora SOLR DataSource', function () {
                 });
             });
         });
+
+        it('should append additional query parameters', function (done) {
+            var request = {
+                collection: 'awesome_index',
+                queryAddition: "_val_:\"product(assetClassBoost,3)\"\n_val_:\"product(importance,50)\""
+            };
+
+            req = nock(solrUrl)
+                .post('/solr/awesome_index/select', /q=\*%3A\*%20_val_%3A%22product\(assetClassBoost%2C3\)%22%20_val_%3A%22product\(importance%2C50\)%22/)
+                .reply(200, testResponse);
+
+            dataSource.process(request, done);
+        });
     });
 
     describe('full-text search', function () {
