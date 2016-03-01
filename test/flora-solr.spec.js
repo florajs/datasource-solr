@@ -203,7 +203,7 @@ describe('Flora SOLR DataSource', function () {
             var request = { collection: 'article', attributes: ['id', 'name', 'date'] };
 
             req = nock(solrUrl)
-                .post(solrIndexPath, /fl=id,name,date/)
+                .post(solrIndexPath, /fl=id%2Cname%2Cdate/)
                 .reply(200, testResponse);
 
             dataSource.process(request, done);

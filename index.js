@@ -2,6 +2,7 @@
 
 var http = require('http');
 var url = require('url');
+var querystring = require('querystring');
 
 var _ = require('lodash');
 var errors = require('flora-errors');
@@ -46,7 +47,7 @@ DataSource.prototype.process = function (request, callback) {
     requestOpts = _.assign({}, options, { path: options.pathname + request.collection + '/select' });
 
     if (request.attributes) params.fl = request.attributes.join(',');
-    if (request.order) params.sort= encodeURIComponent(buildSolrOrderString(request.order));
+    if (request.order) params.sort= buildSolrOrderString(request.order);
 
     if (request.search) queryParts.push(escapeValueForSolr(request.search));
     if (request.filter) {
@@ -73,7 +74,7 @@ DataSource.prototype.process = function (request, callback) {
         });
     }
 
-    params.q = encodeURIComponent(queryParts.join(' AND '));
+    params.q = queryParts.join(' AND ');
 
     if (request._explain) {
         request._explain.href = requestOpts.href;
@@ -304,9 +305,7 @@ function querySolr(options, params, callback) {
         });
     });
 
-    req.write(Object.keys(params).map(function (param) { // add params to POST body
-        return param + '=' + params[param];
-    }).join('&'));
+    req.write(querystring.stringify(params)); // add params to POST body
 
     req.on('error', callback);
     req.end();
