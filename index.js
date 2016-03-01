@@ -91,6 +91,12 @@ DataSource.prototype.close = function (callback) {
     if (callback) callback();
 };
 
+/**
+ * @param {string} value
+ */
+DataSource.prototype.escape = escapeValueForSolr;
+
+
 function buildSolrFilterString(floraFilters) {
     var orConditions;
 
