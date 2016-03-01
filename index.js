@@ -18,11 +18,6 @@ var SUPPORTED_FILTERS = ['equal', 'notEqual', 'lessOrEqual', 'greaterOrEqual', '
  */
 var DataSource = module.exports = function (api, config) {
     this.options = config;
-
-    // create config object for http.request method
-    this.options.servers = _.mapValues(config.servers, function (server) {
-        return _.assign(url.parse(server.url), { method: 'POST', headers: {} });
-    });
 };
 
 /**
@@ -35,16 +30,14 @@ DataSource.prototype.prepare = function () {};
  * @param {Function} callback
  */
 DataSource.prototype.process = function (request, callback) {
-    var options,
-        requestOpts,
+    var requestUrl,
         server = request.server || 'default',
         params = { wt: 'json' },
         queryParts = [];
 
     if (!this.options.servers[server]) return callback(new Error('Server "' + server + '" not defined'));
 
-    options = this.options.servers[server];
-    requestOpts = _.assign({}, options, { path: options.pathname + request.collection + '/select' });
+    requestUrl = this.options.servers[server].url + request.collection + '/select';
 
     if (request.attributes) params.fl = request.attributes.join(',');
     if (request.order) params.sort= buildSolrOrderString(request.order);
@@ -77,11 +70,11 @@ DataSource.prototype.process = function (request, callback) {
     params.q = queryParts.join(' AND ');
 
     if (request._explain) {
-        request._explain.href = requestOpts.href;
+        request._explain.url = requestUrl;
         request._explain.params = params;
     }
 
-    querySolr(requestOpts, params, callback);
+    querySolr(requestUrl, params, callback);
 };
 
 /**
@@ -272,12 +265,14 @@ function prepareQueryAddition(queryAdditions) {
  * @param {Function} callback
  * @private
  */
-function querySolr(options, params, callback) {
-    var req;
+function querySolr(requestUrl, params, callback) {
+    var options = url.parse(requestUrl);
+    options.method = 'POST';
+    options.headers = {
+        'Content-Type': 'application/x-www-form-urlencoded'
+    };
 
-    options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-
-    req = http.request(options, function processSolrReponse(res) {
+    var req = http.request(options, function processSolrReponse(res) {
         var str = '';
 
         res.on('data', function (chunk) {
