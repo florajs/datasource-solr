@@ -38,7 +38,7 @@ DataSource.prototype.process = function (request, callback) {
         requestOpts,
         server = request.server || 'default',
         params = { wt: 'json' },
-        queryString = '*:*';
+        queryParts = [];
 
     if (!this.options.servers[server]) return callback(new Error('Server "' + server + '" not defined'));
 
@@ -48,19 +48,16 @@ DataSource.prototype.process = function (request, callback) {
     if (request.attributes) params.fl = request.attributes.join(',');
     if (request.order) params.sort= encodeURIComponent(buildSolrOrderString(request.order));
 
+    if (request.search) queryParts.push(escapeValueForSolr(request.search));
     if (request.filter) {
         try {
-            queryString = buildSolrFilterString(request.filter);
+            queryParts.push(buildSolrFilterString(request.filter));
         } catch (e) {
             return callback(e);
         }
     }
-
-    if (request.search) {
-        queryString = escapeValueForSolr(request.search) + (queryString !== '*:*' ? ' AND (' + queryString + ')' : '');
-    }
-
-    if (request.queryAddition) queryString += ' ' + prepareQueryAddition(request.queryAddition);
+    if (request.queryAddition) queryParts.push(prepareQueryAddition(request.queryAddition));
+    if (queryParts.length === 0) queryParts.push('*:*');
 
     if (!request.limit) request.limit = 1000000; // overwrite SOLR default limit for sub-resource processing
     if (request.page) params.start = (request.page - 1) * request.limit;
@@ -76,7 +73,7 @@ DataSource.prototype.process = function (request, callback) {
         });
     }
 
-    params.q = encodeURIComponent(queryString);
+    params.q = encodeURIComponent(queryParts.join(' AND '));
 
     if (request._explain) {
         request._explain.href = requestOpts.href;
@@ -104,7 +101,9 @@ function buildSolrFilterString(floraFilters) {
         return '(' + conditions.join(' AND ') + ')';
     });
 
-    return orConditions.join(' OR ');
+    if (orConditions.length > 1) return '(' + orConditions.join(' OR ') + ')';
+
+    return orConditions.join('');
 }
 
 /**

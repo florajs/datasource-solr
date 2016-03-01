@@ -447,7 +447,7 @@ describe('Flora SOLR DataSource', function () {
             };
 
             req = nock(solrUrl)
-                .post('/solr/awesome_index/select', /q=\*%3A\*%20_val_%3A%22product\(assetClassBoost%2C3\)%22%20_val_%3A%22product\(importance%2C50\)%22/)
+                .post('/solr/awesome_index/select', /q=_val_%3A%22product\(assetClassBoost%2C3\)%22%20_val_%3A%22product\(importance%2C50\)%22/)
                 .reply(200, testResponse);
 
             dataSource.process(request, done);
@@ -478,7 +478,7 @@ describe('Flora SOLR DataSource', function () {
             };
 
             req = nock(solrUrl)
-                .post(solrIndexPath, /q=foo%20bar%20AND%20\(\(authorId%3A1337\)\)/)
+                .post(solrIndexPath, /q=foo%20bar%20AND%20\(authorId%3A1337\)/)
                 .reply(200, testResponse);
 
             dataSource.process(request, done);
