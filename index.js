@@ -273,16 +273,16 @@ function querySolr(requestUrl, params, callback) {
     };
 
     var req = http.request(options, function processSolrReponse(res) {
-        var str = '';
+        var chunks = [];
 
         res.on('data', function (chunk) {
-            str += chunk;
+            chunks.push(chunk);
         });
 
         res.on('end', function () {
             var data, error;
 
-            data = parseData(str);
+            data = parseData(Buffer.concat(chunks).toString('utf8'));
             if (res.statusCode >= 400 || data instanceof Error) {
                 if (!(data instanceof Error)) {
                     if (res.statusCode > 400) error = new Error(http.STATUS_CODES[res.statusCode]);
