@@ -34,7 +34,7 @@
     "node": ">=0.10.0"
   },
   "dependencies": {
-    "flora-errors": "^0.2.0",
+    "flora-errors": "^0.6.0",
     "lodash": "^4.0.0"
   },
   "devDependencies": {
