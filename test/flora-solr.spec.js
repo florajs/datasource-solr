@@ -588,7 +588,7 @@ describe('Flora SOLR DataSource', function () {
             req = nock(solrUrl)
                 .post(solrIndexPath, function (body) {
                     return body.hasOwnProperty('group.limit') && body['group.limit'] == 3
-                        && !body.hasOwnProperty('rows');
+                        && body.hasOwnProperty('rows') && body['rows'] == 1000000;
                 })
                 .reply(200, testResponse);
 

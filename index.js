@@ -10,6 +10,7 @@ var RequestError = errors.RequestError;
 var ImplementationError = errors.ImplementationError;
 
 var SUPPORTED_FILTERS = ['equal', 'notEqual', 'lessOrEqual', 'greaterOrEqual', 'range'];
+var NO_LIMIT = 1000000;
 
 /**
  * @constructor
@@ -53,7 +54,7 @@ DataSource.prototype.process = function (request, callback) {
     if (request.queryAddition) queryParts.push(prepareQueryAddition(request.queryAddition));
     if (queryParts.length === 0) queryParts.push('*:*');
 
-    if (!request.limit) request.limit = 1000000; // overwrite SOLR default limit for sub-resource processing
+    if (!request.limit) request.limit = NO_LIMIT; // overwrite SOLR default limit for sub-resource processing
     if (request.page) params.start = (request.page - 1) * request.limit;
 
     if (!request.limitPer) params.rows = request.limit;
@@ -63,7 +64,8 @@ DataSource.prototype.process = function (request, callback) {
             'group.format': 'simple',
             'group.main': 'true',
             'group.field': request.limitPer,
-            'group.limit': request.limit
+            'group.limit': request.limit,
+            rows: NO_LIMIT // disable default limit because groups are returned as list
         });
     }
 
