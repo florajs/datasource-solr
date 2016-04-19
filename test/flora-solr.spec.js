@@ -7,7 +7,6 @@ var nock = require('nock');
 
 var FloraSolr = require('../index');
 var errors = require('flora-errors');
-var RequestError = errors.RequestError;
 var ImplementationError = errors.ImplementationError;
 
 function escapeRegex(s) {
@@ -127,44 +126,24 @@ describe('Flora SOLR DataSource', function () {
     });
 
     describe('error handling', function () {
-        it('should trigger general error if status code is greater than 400', function (done) {
-            var httpStatusCode = 500;
-
+        it('should trigger error if status code >= 400', function (done) {
             req = nock(solrUrl)
                 .post(solrIndexPath)
-                .reply(httpStatusCode, '{}');
+                .reply(500, '{}');
 
             dataSource.process({ collection: 'article' }, function (err) {
                 expect(err).to.be.instanceof(Error);
-                expect(err.code).to.equal(httpStatusCode);
                 done();
             });
         });
 
-        it('should trigger RequestError if status code equals 400', function (done) {
-            var httpStatusCode = 400;
-
-            req = nock(solrUrl)
-                .post(solrIndexPath)
-                .reply(httpStatusCode, '{"error":{"msg":"Invalid parameter..."}}');
-
-            dataSource.process({ collection: 'article' }, function (err) {
-                expect(err).to.be.instanceof(RequestError);
-                expect(err.message).to.equal('Invalid parameter...');
-                expect(err.code).to.equal(httpStatusCode);
-                done();
-            });
-        });
-
-        it('should trigger an error if response cannot be parsed', function (done) {
+        it('should trigger error if response cannot be parsed', function (done) {
             req = nock(solrUrl)
                 .post(solrIndexPath)
                 .reply(418, '<p>Something went wrong</p>');
 
             dataSource.process({ collection: 'article' }, function (err) {
                 expect(err).to.be.instanceof(Error);
-                expect(err.message).to.contain('<p>Something went wrong</p>');
-                expect(err.code).to.equal(502);
                 done();
             });
         });

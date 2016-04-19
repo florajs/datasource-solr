@@ -6,7 +6,6 @@ var querystring = require('querystring');
 
 var _ = require('lodash');
 var errors = require('flora-errors');
-var RequestError = errors.RequestError;
 var ImplementationError = errors.ImplementationError;
 
 var SUPPORTED_FILTERS = ['equal', 'notEqual', 'lessOrEqual', 'greaterOrEqual', 'range'];
@@ -282,17 +281,14 @@ function querySolr(requestUrl, params, callback) {
         });
 
         res.on('end', function () {
-            var data, error;
+            var data = parseData(Buffer.concat(chunks).toString('utf8'));
 
-            data = parseData(Buffer.concat(chunks).toString('utf8'));
             if (res.statusCode >= 400 || data instanceof Error) {
-                if (!(data instanceof Error)) {
-                    if (res.statusCode > 400) error = new Error(http.STATUS_CODES[res.statusCode]);
-                    else if (res.statusCode === 400) error = new RequestError(data.error.msg);
-                    error.code = res.statusCode;
-                } else {
-                    error = data;
-                    error.code = 502;
+                var error = new Error('Solr error: ' + res.statusCode + ' ' + http.STATUS_CODES[res.statusCode]);
+                if (data instanceof Error) {
+                    error.message += ': ' + data.message;
+                } else if (data && data.error && data.error.msg) {
+                    error.message += ': ' + data.error.msg;
                 }
 
                 return callback(error);
