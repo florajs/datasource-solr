@@ -521,7 +521,7 @@ describe('Flora SOLR DataSource', function () {
                         paginationParams = [];
 
                     ['rows', 'start'].forEach(function (key) { // extract pagination params
-                        if (params.hasOwnProperty(key)) {
+                        if (params[key]) {
                             paginationParams.push(key + '=' + params[key]);
                         }
                     });
@@ -555,8 +555,8 @@ describe('Flora SOLR DataSource', function () {
         it('should return flat list instead of groups', function (done) {
             req = nock(solrUrl)
                 .post(solrIndexPath, function (body) {
-                    return body.hasOwnProperty('group.format') && body['group.format'] === 'simple'
-                        && body.hasOwnProperty('group.main') && body['group.main'] === 'true';
+                    return body['group.format'] === 'simple'
+                        && body['group.main'] === 'true';
                 })
                 .reply(200, testResponse);
 
@@ -566,8 +566,8 @@ describe('Flora SOLR DataSource', function () {
         it('should set limit', function (done) {
             req = nock(solrUrl)
                 .post(solrIndexPath, function (body) {
-                    return body.hasOwnProperty('group.limit') && body['group.limit'] == 3
-                        && body.hasOwnProperty('rows') && body['rows'] == 1000000;
+                    return body['group.limit'] == 3
+                        && body['rows'] == 1000000;
                 })
                 .reply(200, testResponse);
 
@@ -577,7 +577,7 @@ describe('Flora SOLR DataSource', function () {
         it('should not set group sort order', function (done) {
             req = nock(solrUrl)
                 .post(solrIndexPath, function (body) {
-                    return !body.hasOwnProperty('group.sort');
+                    return !body['group.sort'];
                 })
                 .reply(200, testResponse);
 
