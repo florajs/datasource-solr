@@ -1,7 +1,6 @@
 'use strict';
 
 module.exports = function (grunt) {
-
     grunt.initConfig({
         mochaTest: {
             test: {
@@ -20,7 +19,7 @@ module.exports = function (grunt) {
             }
         },
 
-        'mocha_istanbul': {
+        mocha_istanbul: {
             coverage: {
                 src: 'test',
                 options: {
@@ -48,5 +47,4 @@ module.exports = function (grunt) {
     grunt.registerTask('test', 'mochaTest:test');
     grunt.registerTask('test-bamboo', 'mochaTest:bamboo');
     grunt.registerTask('test-cov', ['mocha_istanbul:coverage']);
-
 };
