@@ -1,136 +1,21 @@
 'use strict';
 
-var http = require('http');
-var url = require('url');
-var querystring = require('querystring');
+const http = require('http');
+const url = require('url');
+const querystring = require('querystring');
 
-var _ = require('lodash');
-var errors = require('flora-errors');
-var ImplementationError = errors.ImplementationError;
+const _ = require('lodash');
+const { ImplementationError } = require('flora-errors');
 
-var SUPPORTED_FILTERS = ['equal', 'notEqual', 'lessOrEqual', 'greaterOrEqual', 'range'];
-var NO_LIMIT = 1000000;
+const SUPPORTED_FILTERS = [
+    'equal',
+    'notEqual',
+    'lessOrEqual',
+    'greaterOrEqual',
+    'range'
+];
 
-/**
- * @constructor
- * @param {Api} api
- * @param {Object} config
- */
-var DataSource = module.exports = function (api, config) {
-    this.options = config;
-};
-
-/**
- * @public
- */
-DataSource.prototype.prepare = function () {};
-
-/**
- * @param {Object} request
- * @param {Function} callback
- */
-DataSource.prototype.process = function (request, callback) {
-    var requestUrl,
-        server = request.server || 'default',
-        params = { wt: 'json' },
-        queryParts = [];
-
-    if (!this.options.servers[server]) return callback(new Error('Server "' + server + '" not defined'));
-
-    requestUrl = this.options.servers[server].url + request.collection + '/select';
-
-    if (request.attributes) params.fl = request.attributes.join(',');
-    if (request.order) params.sort= buildSolrOrderString(request.order);
-
-    if (request.search) queryParts.push(escapeValueForSolr(request.search));
-    if (request.filter) {
-        try {
-            queryParts.push(buildSolrFilterString(request.filter));
-        } catch (e) {
-            return callback(e);
-        }
-    }
-    if (request.queryAddition) queryParts.push(prepareQueryAddition(request.queryAddition));
-    if (queryParts.length === 0) queryParts.push('*:*');
-
-    if (!request.limit) request.limit = NO_LIMIT; // overwrite SOLR default limit for sub-resource processing
-    if (request.page) params.start = (request.page - 1) * request.limit;
-
-    if (!request.limitPer) params.rows = request.limit;
-    else {
-        params = _.assign(params, {
-            group: 'true',
-            'group.format': 'simple',
-            'group.main': 'true',
-            'group.field': request.limitPer,
-            'group.limit': request.limit,
-            rows: NO_LIMIT // disable default limit because groups are returned as list
-        });
-    }
-
-    params.q = queryParts.join(' AND ');
-
-    if (request._explain) {
-        request._explain.url = requestUrl;
-        request._explain.params = params;
-    }
-
-    querySolr(requestUrl, params, callback);
-};
-
-/**
- * @param {Function} callback
- */
-DataSource.prototype.close = function (callback) {
-    // TODO: implement
-    if (callback) callback();
-};
-
-/**
- * @param {string} value
- */
-DataSource.prototype.escape = escapeValueForSolr;
-
-
-function buildSolrFilterString(floraFilters) {
-    var orConditions;
-
-    orConditions = floraFilters.map(function (andFilters) {
-        var conditions;
-        if (andFilters.length > 1) andFilters = rangify(andFilters);
-        conditions = andFilters.map(convertFilterToSolrSyntax);
-        return '(' + conditions.join(' AND ') + ')';
-    });
-
-    if (orConditions.length > 1) return '(' + orConditions.join(' OR ') + ')';
-
-    return orConditions.join('');
-}
-
-/**
- * Convert greaterOrEqual and lessOrEqual filters on same attribute
- * to a single range filter.
- *
- * @param {Array.<Object>} filters
- * @return {Array.<Object>}
- * @private
- */
-function rangify(filters) {
-    var groupedAttrs = _.groupBy(filters, 'attribute'),
-        rangeQueries = _.filter(groupedAttrs, filterRangeQueries),
-        rangeQueryAttrs;
-
-    if (! rangeQueries.length) return filters;
-
-    rangeQueryAttrs = rangeQueries.map(function (rangeQuery) {
-        return rangeQuery[0].attribute;
-    });
-
-    return filters.filter(function (filter) { // copy non-range query attributes
-        return rangeQueryAttrs.indexOf(filter.attribute) === -1;
-    })
-        .concat(rangeQueries.map(createRangeFilter));
-}
+const NO_LIMIT = 1000000;
 
 /**
  * Return true if two filters on same attribute can be used as single range filter.
@@ -140,13 +25,11 @@ function rangify(filters) {
  * @private
  */
 function filterRangeQueries(filters) {
-    var rangeOperators, operator1, operator2;
-
     if (filters.length !== 2) return false;
 
-    rangeOperators = ['lessOrEqual', 'greaterOrEqual'];
-    operator1 = filters[0].operator;
-    operator2 = filters[1].operator;
+    const rangeOperators = ['lessOrEqual', 'greaterOrEqual'];
+    const operator1 = filters[0].operator;
+    const operator2 = filters[1].operator;
 
     return rangeOperators.indexOf(operator1) !== -1 && rangeOperators.indexOf(operator2) !== -1;
 }
@@ -159,53 +42,45 @@ function filterRangeQueries(filters) {
  * @private
  */
 function createRangeFilter(attributeFilters) {
-    var rangeFilter = { attribute: attributeFilters[0].attribute, operator: 'range' };
+    const rangeFilter = { attribute: attributeFilters[0].attribute, operator: 'range' };
 
-    attributeFilters.sort(function (filter1) { // make sure greaterOrEqual filter comes first
-        return filter1.operator === 'greaterOrEqual' ? -1 : 1;
-    });
+    // make sure greaterOrEqual filter comes first
+    attributeFilters.sort(filter1 => (filter1.operator === 'greaterOrEqual' ? -1 : 1));
 
     rangeFilter.value = [attributeFilters[0].value, attributeFilters[1].value];
     return rangeFilter;
 }
 
 /**
- * @param {Object} filter
+ * Convert greaterOrEqual and lessOrEqual filters on same attribute
+ * to a single range filter.
+ *
+ * @param {Array.<Object>} filters
+ * @return {Array.<Object>}
+ * @private
+ */
+function rangify(filters) {
+    const groupedAttrs = _.groupBy(filters, 'attribute');
+    const rangeQueries = _.filter(groupedAttrs, filterRangeQueries);
+
+    if (!rangeQueries.length) return filters;
+
+    const rangeQueryAttrs = rangeQueries.map(rangeQuery => rangeQuery[0].attribute);
+
+    // copy non-range query attributes
+    return filters
+        .filter(filter => rangeQueryAttrs.indexOf(filter.attribute) === -1)
+        .concat(rangeQueries.map(createRangeFilter));
+}
+
+/**
+ * @param {string} value
  * @return {string}
  * @private
  */
-function convertFilterToSolrSyntax(filter) {
-    var value = filter.value,
-        operator = filter.operator;
-
-    if (SUPPORTED_FILTERS.indexOf(filter.operator) === -1) {
-        throw new ImplementationError('DataSource "flora-solr" does not support "' + filter.operator + '" filters');
-    }
-
-    if (!Array.isArray(filter.attribute)) {
-        value = escapeValueForSolr(value);
-        if (Array.isArray(value)) {
-            if (operator === 'range') value = '[' + value[0] + ' TO ' + value[1] + ']';
-            else value = '(' + value.join(' OR ') + ')';
-        }
-
-        if (operator !== 'notEqual') {
-            if (operator === 'greaterOrEqual') value = '[' + value + ' TO *]';
-            if (operator === 'lessOrEqual') value = '[* TO ' + value + ']';
-            return filter.attribute + ':' + value;
-        } else {
-            return '-' + filter.attribute + ':' + value;
-        }
-    } else { // convert composite keys to SOLR syntax
-        return value
-            .map(function (values) {
-                var conditions = values.map(function (val, index) {
-                    return filter.attribute[index] + ':' + escapeValueForSolr(val);
-                });
-                return '(' + conditions.join(' AND ') + ')';
-            })
-            .join(' OR ');
-    }
+function escapeSpecialChars(value) {
+    const specialCharRegex = /(\\|\/|\+|-|&|\||!|\(|\)|\{|}|\[|]|\^|"|~|\*|\?|:)/g;
+    return value.replace(specialCharRegex, '\\$1');
 }
 
 /**
@@ -222,14 +97,52 @@ function escapeValueForSolr(value) {
 }
 
 /**
- *
- * @param {string} value
+ * @param {Object} filter
  * @return {string}
  * @private
  */
-function escapeSpecialChars(value) {
-    var specialCharRegex = /(\\|\/|\+|-|&|\||!|\(|\)|\{|}|\[|]|\^|"|~|\*|\?|:)/g;
-    return value.replace(specialCharRegex, '\\$1');
+function convertFilterToSolrSyntax(filter) {
+    let value = filter.value;
+    const operator = filter.operator;
+
+    if (SUPPORTED_FILTERS.indexOf(filter.operator) === -1) {
+        throw new ImplementationError(`DataSource "flora-solr" does not support "${filter.operator}" filters`);
+    }
+
+    if (!Array.isArray(filter.attribute)) {
+        value = escapeValueForSolr(value);
+        if (Array.isArray(value)) {
+            if (operator === 'range') value = '[' + value[0] + ' TO ' + value[1] + ']';
+            else value = '(' + value.join(' OR ') + ')';
+        }
+
+        if (operator !== 'notEqual') {
+            if (operator === 'greaterOrEqual') value = '[' + value + ' TO *]';
+            if (operator === 'lessOrEqual') value = '[* TO ' + value + ']';
+            return filter.attribute + ':' + value;
+        }
+        return '-' + filter.attribute + ':' + value;
+    }
+
+    // convert composite keys to SOLR syntax
+    return value
+        .map((values) => {
+            const conditions = values.map((val, index) => filter.attribute[index] + ':' + escapeValueForSolr(val));
+            return '(' + conditions.join(' AND ') + ')';
+        })
+        .join(' OR ');
+}
+
+function buildSolrFilterString(floraFilters) {
+    const orConditions = floraFilters.map((andFilters) => {
+        if (andFilters.length > 1) andFilters = rangify(andFilters);
+        const conditions = andFilters.map(convertFilterToSolrSyntax);
+        return '(' + conditions.join(' AND ') + ')';
+    });
+
+    if (orConditions.length > 1) return '(' + orConditions.join(' OR ') + ')';
+
+    return orConditions.join('');
 }
 
 /**
@@ -238,10 +151,9 @@ function escapeSpecialChars(value) {
  * @private
  */
 function buildSolrOrderString(floraOrders) {
-    var orderCriteria = floraOrders.map(function (order) {
-        return order.attribute + ' ' + order.direction;
-    });
-    return orderCriteria.join(',');
+    return floraOrders
+        .map(order => (order.attribute + ' ' + order.direction))
+        .join(',');
 }
 
 function parseData(str) {
@@ -267,24 +179,22 @@ function prepareQueryAddition(queryAdditions) {
  * @private
  */
 function querySolr(requestUrl, params, callback) {
-    var options = url.parse(requestUrl);
+    const options = url.parse(requestUrl);
     options.method = 'POST';
     options.headers = {
         'Content-Type': 'application/x-www-form-urlencoded'
     };
 
-    var req = http.request(options, function processSolrReponse(res) {
-        var chunks = [];
+    const req = http.request(options, (res) => {
+        const chunks = [];
 
-        res.on('data', function (chunk) {
-            chunks.push(chunk);
-        });
+        res.on('data', chunk => chunks.push(chunk));
 
-        res.on('end', function () {
-            var data = parseData(Buffer.concat(chunks).toString('utf8'));
+        res.on('end', () => {
+            const data = parseData(Buffer.concat(chunks).toString('utf8'));
 
             if (res.statusCode >= 400 || data instanceof Error) {
-                var error = new Error('Solr error: ' + res.statusCode + ' ' + http.STATUS_CODES[res.statusCode]);
+                const error = new Error('Solr error: ' + res.statusCode + ' ' + http.STATUS_CODES[res.statusCode]);
                 if (data instanceof Error) {
                     error.message += ': ' + data.message;
                 } else if (data && data.error && data.error.msg) {
@@ -294,7 +204,7 @@ function querySolr(requestUrl, params, callback) {
                 return callback(error);
             }
 
-            callback(null, { totalCount: data.response.numFound, data: data.response.docs });
+            return callback(null, { totalCount: data.response.numFound, data: data.response.docs });
         });
     });
 
@@ -303,3 +213,89 @@ function querySolr(requestUrl, params, callback) {
     req.on('error', callback);
     req.end();
 }
+
+class DataSource {
+    /**
+     * @param {Api} api
+     * @param {Object} config
+     */
+    constructor(api, config) {
+        this.options = config;
+    }
+
+    /**
+     * @public
+     */
+    prepare() {
+    }
+
+    /**
+     * @param {Object} request
+     * @param {Function} callback
+     */
+    process(request, callback) {
+        const server = request.server || 'default';
+        const queryParts = [];
+        let params = { wt: 'json' };
+
+        if (!this.options.servers[server]) return callback(new Error(`Server "${server}" not defined`));
+
+        const requestUrl = this.options.servers[server].url + request.collection + '/select';
+
+        if (request.attributes) params.fl = request.attributes.join(',');
+        if (request.order) params.sort = buildSolrOrderString(request.order);
+
+        if (request.search) queryParts.push(escapeValueForSolr(request.search));
+        if (request.filter) {
+            try {
+                queryParts.push(buildSolrFilterString(request.filter));
+            } catch (e) {
+                return callback(e);
+            }
+        }
+        if (request.queryAddition) queryParts.push(prepareQueryAddition(request.queryAddition));
+        if (queryParts.length === 0) queryParts.push('*:*');
+
+        // overwrite SOLR default limit for sub-resource processing
+        if (!request.limit) request.limit = NO_LIMIT;
+        if (request.page) params.start = (request.page - 1) * request.limit;
+
+        if (!request.limitPer) params.rows = request.limit;
+        else {
+            params = _.assign(params, {
+                group: 'true',
+                'group.format': 'simple',
+                'group.main': 'true',
+                'group.field': request.limitPer,
+                'group.limit': request.limit,
+                rows: NO_LIMIT // disable default limit because groups are returned as list
+            });
+        }
+
+        params.q = queryParts.join(' AND ');
+
+        if (request._explain) {
+            request._explain.url = requestUrl;
+            request._explain.params = params;
+        }
+
+        return querySolr(requestUrl, params, callback);
+    }
+
+    /**
+     * @param {Function} callback
+     */
+    close(callback) {
+        // TODO: implement
+        if (callback) callback();
+    }
+
+    /**
+     * @param {string} value
+     */
+    escape(...args) {
+        return escapeValueForSolr(...args);
+    }
+}
+
+module.exports = DataSource;
