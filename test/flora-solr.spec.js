@@ -2,7 +2,6 @@
 
 var expect = require('chai').expect;
 var _ = require('lodash');
-var Promise = require('when').Promise;
 var nock = require('nock');
 
 var FloraSolr = require('../index');

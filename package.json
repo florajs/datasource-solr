@@ -13,10 +13,7 @@
   },
   "homepage": "https://github.com/godmodelabs/flora-solr",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/godmodelabs/flora-solr.git"
-  },
+  "repository": "godmodelabs/flora-solr",
   "contributors": [
     {
       "name": "Marco Baumgartl",
@@ -32,28 +29,27 @@
     }
   ],
   "engines": {
-    "node": ">=0.10.0"
+    "node": ">=6"
   },
   "dependencies": {
-    "flora-errors": "^0.6.0",
+    "flora-errors": "^0.7.0",
     "lodash": "^4.0.0"
   },
   "devDependencies": {
     "chai": "^3.4.1",
     "eslint": "^3.11.1",
-    "eslint-config-airbnb-base": "^10.0.1",
+    "eslint-config-airbnb-base": "^11.0.0",
     "eslint-plugin-import": "^2.2.0",
     "grunt": "^1.0.1",
     "grunt-cli": "^1.2.0",
     "grunt-contrib-clean": "^1.0.0",
     "grunt-eslint": "^19.0.0",
     "grunt-mocha-istanbul": "^5.0.1",
-    "grunt-mocha-test": "^0.12.7",
+    "grunt-mocha-test": "^0.13.2",
     "istanbul": "^0.4.2",
     "load-grunt-tasks": "^3.4.0",
     "mocha": "^3.0.0",
     "mocha-bamboo-reporter": "^1.1.0",
-    "nock": "8.0.x",
-    "when": "^3.7.7"
+    "nock": "9.0.x"
   }
 }
