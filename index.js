@@ -173,7 +173,7 @@ function prepareQueryAddition(queryAdditions) {
 
 /**
  *
- * @param {Object} options
+ * @param {Object} requestUrl
  * @param {Object} params
  * @param {Function} callback
  * @private
@@ -291,7 +291,7 @@ class DataSource {
     }
 
     /**
-     * @param {string} value
+     * @param {...string} args
      */
     escape(...args) {
         return escapeValueForSolr(...args);
