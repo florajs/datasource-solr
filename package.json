@@ -50,6 +50,9 @@
     "load-grunt-tasks": "^3.4.0",
     "mocha": "^3.0.0",
     "mocha-bamboo-reporter": "^1.1.0",
-    "nock": "9.0.x"
+    "nock": "9.0.x",
+    "sinon": "^2.2.0",
+    "sinon-chai": "^2.10.0",
+    "sinon-test": "^1.0.2"
   }
 }

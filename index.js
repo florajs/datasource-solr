@@ -175,15 +175,16 @@ function prepareQueryAddition(queryAdditions) {
  *
  * @param {Object} requestUrl
  * @param {Object} params
+ * @param {Object} requestOptions
  * @param {Function} callback
  * @private
  */
-function querySolr(requestUrl, params, callback) {
-    const options = url.parse(requestUrl);
-    options.method = 'POST';
-    options.headers = {
-        'Content-Type': 'application/x-www-form-urlencoded'
-    };
+function querySolr(requestUrl, params, requestOptions, callback) {
+    const options = Object.assign(url.parse(requestUrl), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: requestOptions.connectTimeout
+    });
 
     const req = http.request(options, (res) => {
         const chunks = [];
@@ -207,6 +208,8 @@ function querySolr(requestUrl, params, callback) {
             return callback(null, { totalCount: data.response.numFound, data: data.response.docs });
         });
     });
+
+    req.setTimeout(requestOptions.requestTimeout, () => req.abort());
 
     req.write(querystring.stringify(params)); // add params to POST body
 
@@ -236,7 +239,11 @@ class DataSource {
     process(request, callback) {
         const server = request.server || 'default';
         const queryParts = [];
-        let params = { wt: 'json' };
+        const params = { wt: 'json' };
+        const requestOpts = {
+            connectTimeout: 2000,
+            requestTimeout: 10000
+        };
 
         if (!this.options.servers[server]) return callback(new Error(`Server "${server}" not defined`));
 
@@ -262,7 +269,7 @@ class DataSource {
 
         if (!request.limitPer) params.rows = request.limit;
         else {
-            params = _.assign(params, {
+            Object.assign(params, {
                 group: 'true',
                 'group.format': 'simple',
                 'group.main': 'true',
@@ -279,7 +286,10 @@ class DataSource {
             request._explain.params = params;
         }
 
-        return querySolr(requestUrl, params, callback);
+        if (this.options.servers[server].connectTimeout) requestOpts.connectTimeout = this.options.servers[server].connectTimeout;
+        if (this.options.servers[server].requestTimeout) requestOpts.requestTimeout = this.options.servers[server].requestTimeout;
+
+        return querySolr(requestUrl, params, requestOpts, callback);
     }
 
     /**

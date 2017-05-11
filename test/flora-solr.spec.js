@@ -1,13 +1,20 @@
 'use strict';
 
-const { expect } = require('chai');
+const chai = require('chai');
+const { expect } = chai;
 const _ = require('lodash');
 const nock = require('nock');
 const errors = require('flora-errors');
+const http = require('http');
+const sinon = require('sinon');
+const sinonTest = require('sinon-test');
 
 const FloraSolr = require('../index');
 
 const ImplementationError = errors.ImplementationError;
+
+chai.use(require('sinon-chai'));
+sinon.test = sinonTest.configureTest(sinon);
 
 function escapeRegex(s) {
     return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
@@ -149,17 +156,16 @@ describe('Flora SOLR DataSource', () => {
         });
 
         it('should handle request\'s error event', (done) => {
-            var cfg = {
+            // nock can't fake request errors at the moment, so we have to make a real request to nonexistent host
+            dataSource = new FloraSolr(api, {
                 servers: {
                     'default': { url: 'http://doesnotexists.localhost/solr/' }
                 }
-            };
-
-            // nock can't fake request errors at the moment, so we have to make a real request to nonexistent host
-            dataSource = new FloraSolr(api, cfg);
+            });
 
             dataSource.process({ collection: 'article' }, (err) => {
-                expect(err).to.be.instanceof(Error);
+                expect(err).to.be.instanceOf(Error);
+                expect(err.code).to.equal('ENOTFOUND');
                 done();
             });
         });
@@ -532,6 +538,83 @@ describe('Flora SOLR DataSource', () => {
                 .reply(200, testResponse);
 
             dataSource.process({ collection: 'article', limit: 10, page: 3 }, done);
+        });
+    });
+
+    describe('timeout', () => {
+        describe('defaults', () => {
+            it('should set connect timeout to 2 seconds', sinon.test(function (done) {
+                const requestSpy = this.spy(http, 'request');
+
+                req = nock(solrUrl)
+                    .post(solrIndexPath)
+                    .reply(200, testResponse);
+
+                dataSource.process({ collection: 'article' }, () => {
+                    expect(requestSpy).to.have.been.calledWith(sinon.match.has('timeout', 2000), sinon.match.func);
+                    done();
+                });
+            }));
+
+            it('should set request timeout to 10 seconds', (done) => {
+                req = nock(solrUrl)
+                    .post(solrIndexPath)
+                    .socketDelay(11000)
+                    .reply(200, testResponse);
+
+                dataSource.process({ collection: 'article' }, (err) => {
+                    expect(err).to.be.instanceOf(Error);
+                    expect(err.code).to.equal('ECONNRESET');
+                    done();
+                });
+            });
+        });
+
+        describe('config options', () => {
+            it('should overwrite default connect timeout', sinon.test(function (done) {
+                const TIMEOUT = 5000;
+                const requestSpy = this.spy(http, 'request');
+                const ds = new FloraSolr(api, {
+                    servers: {
+                        default: {
+                            url: 'http://example.com/solr/',
+                            connectTimeout: TIMEOUT
+                        }
+                    }
+                });
+
+                req = nock(solrUrl)
+                    .post(solrIndexPath)
+                    .socketDelay(10000)
+                    .reply(200, testResponse);
+
+                ds.process({ collection: 'article' }, () => {
+                    expect(requestSpy).to.have.been.calledWith(sinon.match.has('timeout', TIMEOUT), sinon.match.func);
+                    done();
+                });
+            }));
+
+            it('should overwrite default request timeout', (done) => {
+                const ds = new FloraSolr(api, {
+                    servers: {
+                        default: {
+                            url: 'http://example.com/solr/',
+                            requestTimeout: 1500
+                        }
+                    }
+                });
+
+                req = nock(solrUrl)
+                    .post(solrIndexPath)
+                    .socketDelay(3000)
+                    .reply(200, testResponse);
+
+                ds.process({ collection: 'article' }, (err) => {
+                    expect(err).to.be.instanceOf(Error);
+                    expect(err.code).to.equal('ECONNRESET');
+                    done();
+                });
+            });
         });
     });
 
