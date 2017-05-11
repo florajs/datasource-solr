@@ -21,22 +21,20 @@ function escapeRegex(s) {
 }
 
 describe('Flora SOLR DataSource', () => {
-    var solrUrl = 'http://example.com',
-        solrIndexPath = '/solr/article/select',
-        testResponse = '{"response":{"numFound":0,"docs":[]}}',
-        dataSource,
-        req;
+    const solrUrl = 'http://example.com';
+    const solrIndexPath = '/solr/article/select';
+    const testResponse = '{"response":{"numFound":0,"docs":[]}}';
+    let dataSource;
+    let req;
 
-    var api = {};
+    const api = {};
 
     beforeEach(() => {
-        var cfg = {
-                servers: {
-                    default: { url: 'http://example.com/solr/' }
-                }
-            };
-
-        dataSource = new FloraSolr(api, cfg);
+        dataSource = new FloraSolr(api, {
+            servers: {
+                default: { url: 'http://example.com/solr/' }
+            }
+        });
     });
 
     afterEach(() => {
@@ -92,17 +90,17 @@ describe('Flora SOLR DataSource', () => {
     });
 
     it('should support multiple servers', (done) => {
-        var archiveReq, awesomeReq, requests,
-            floraRequests = [
-                { collection: 'archive' },
-                { server: 'other', collection: 'awesome-index' }
-            ],
-            ds = new FloraSolr(api, {
-                servers: {
-                    'default': { url: 'http://article.example.com/solr/' },
-                    other: { url: 'http://other.example.com/solr/' }
-                }
-            });
+        let archiveReq, awesomeReq, requests;
+        const floraRequests = [
+            { collection: 'archive' },
+            { server: 'other', collection: 'awesome-index' }
+        ];
+        const ds = new FloraSolr(api, {
+            servers: {
+                'default': { url: 'http://article.example.com/solr/' },
+                other: { url: 'http://other.example.com/solr/' }
+            }
+        });
 
         archiveReq = nock('http://article.example.com')
             .post('/solr/archive/select')
@@ -185,13 +183,11 @@ describe('Flora SOLR DataSource', () => {
 
     describe('attributes', () => {
         it('should set requested attributes', (done) => {
-            var request = { collection: 'article', attributes: ['id', 'name', 'date'] };
-
             req = nock(solrUrl)
                 .post(solrIndexPath, /fl=id%2Cname%2Cdate/)
                 .reply(200, testResponse);
 
-            dataSource.process(request, done);
+            dataSource.process({ collection: 'article', attributes: ['id', 'name', 'date'] }, done);
         });
     });
 
@@ -208,13 +204,13 @@ describe('Flora SOLR DataSource', () => {
         // test conversion of boolean values
         _({ false: 0, true: 1 }).forEach((conversionTarget, booleanValue) => {
             it('should transform boolean ' + booleanValue + ' value to ' + conversionTarget + '', (done) => {
-                var request = {
-                        collection: 'article',
-                        filter: [
-                            [{ attribute: 'foo', operator: 'equal', value: booleanValue !== 'false' }]
-                        ]
-                    },
-                    paramRegex = new RegExp('q=\\(foo%3A' + conversionTarget + '\\)');
+                const request = {
+                    collection: 'article',
+                    filter: [
+                        [{ attribute: 'foo', operator: 'equal', value: booleanValue !== 'false' }]
+                    ]
+                };
+                const paramRegex = new RegExp('q=\\(foo%3A' + conversionTarget + '\\)');
 
                 req = nock(solrUrl)
                     .post(solrIndexPath, paramRegex)
@@ -225,13 +221,13 @@ describe('Flora SOLR DataSource', () => {
         });
 
         it('should support arrays', (done) => {
-            var request = {
-                    collection: 'article',
-                    filter: [
-                        [{attribute: 'foo', operator: 'equal', value: [1, 3, 5, 7]}]
-                    ]
-                },
-                paramRegex = new RegExp('q=\\(foo%3A\\(' + encodeURIComponent('1 OR 3 OR 5 OR 7') + '\\)');
+            const request = {
+                collection: 'article',
+                filter: [
+                    [{attribute: 'foo', operator: 'equal', value: [1, 3, 5, 7]}]
+                ]
+            };
+            const paramRegex = new RegExp('q=\\(foo%3A\\(' + encodeURIComponent('1 OR 3 OR 5 OR 7') + '\\)');
 
             req = nock(solrUrl)
                 .post(solrIndexPath, paramRegex)
@@ -240,20 +236,20 @@ describe('Flora SOLR DataSource', () => {
             dataSource.process(request, done);
         });
 
-        var specialChars = [
+        const specialChars = [
             '\\', '/', '+', '-', '&', '|', '!', '(', ')',
             '{', '}', '[', ']', '^', '"', '~', '*', '?', ':'
         ];
         specialChars.forEach((character) => {
             it('should escape special character ' + character, (done) => {
-                var request = {
-                        collection: 'article',
-                        filter: [
-                            [{ attribute: 'foo', operator: 'equal', value: character + 'bar' }]
-                        ]
-                    },
-                    encodedChar = encodeURIComponent(character),
-                    paramRegex = new RegExp('q=\\(foo%3A%5C' + escapeRegex(encodedChar) + 'bar\\)');
+                const request = {
+                    collection: 'article',
+                    filter: [
+                        [{ attribute: 'foo', operator: 'equal', value: character + 'bar' }]
+                    ]
+                };
+                const encodedChar = encodeURIComponent(character);
+                const paramRegex = new RegExp('q=\\(foo%3A%5C' + escapeRegex(encodedChar) + 'bar\\)');
 
                 req = nock(solrUrl)
                     .post(solrIndexPath, paramRegex)
@@ -265,14 +261,14 @@ describe('Flora SOLR DataSource', () => {
 
         describe('range queries', () => {
             it('should support fixed lower boundaries', (done) => {
-                var request = {
-                        collection: 'article',
-                        filter: [
-                            [{ attribute: 'foo', operator: 'greaterOrEqual', value: 1337 }]
-                        ]
-                    },
-                    encodedRangeQuery = encodeURIComponent('foo:[1337 TO *]'),
-                    rangeQueryRegex = new RegExp('q=\\(' + escapeRegex(encodedRangeQuery) + '\\)');
+                const request = {
+                    collection: 'article',
+                    filter: [
+                        [{ attribute: 'foo', operator: 'greaterOrEqual', value: 1337 }]
+                    ]
+                };
+                const encodedRangeQuery = encodeURIComponent('foo:[1337 TO *]');
+                const rangeQueryRegex = new RegExp('q=\\(' + escapeRegex(encodedRangeQuery) + '\\)');
 
                 req = nock(solrUrl)
                     .post(solrIndexPath, rangeQueryRegex)
@@ -282,14 +278,14 @@ describe('Flora SOLR DataSource', () => {
             });
 
             it('should support fixed upper boundaries', (done) => {
-                var request = {
-                        collection: 'article',
-                        filter: [
-                            [{ attribute: 'foo', operator: 'lessOrEqual', value: 1337 }]
-                        ]
-                    },
-                    encodedRangeQuery = encodeURIComponent('foo:[* TO 1337]'),
-                    rangeQueryRegex = new RegExp('q=\\(' + escapeRegex(encodedRangeQuery) + '\\)');
+                const request = {
+                    collection: 'article',
+                    filter: [
+                        [{ attribute: 'foo', operator: 'lessOrEqual', value: 1337 }]
+                    ]
+                };
+                const encodedRangeQuery = encodeURIComponent('foo:[* TO 1337]');
+                const rangeQueryRegex = new RegExp('q=\\(' + escapeRegex(encodedRangeQuery) + '\\)');
 
                 req = nock(solrUrl)
                     .post(solrIndexPath, rangeQueryRegex)
@@ -299,17 +295,17 @@ describe('Flora SOLR DataSource', () => {
             });
 
             it('should support fixed lower and upper boundaries', (done) => {
-                var request = {
-                        collection: 'article',
-                        filter: [
-                            [
-                                { attribute: 'foo', operator: 'greaterOrEqual', value: 1337 },
-                                { attribute: 'foo', operator: 'lessOrEqual', value: 4711 }
-                            ]
+                const request = {
+                    collection: 'article',
+                    filter: [
+                        [
+                            { attribute: 'foo', operator: 'greaterOrEqual', value: 1337 },
+                            { attribute: 'foo', operator: 'lessOrEqual', value: 4711 }
                         ]
-                    },
-                    encodedRangeQuery = encodeURIComponent('foo:[1337 TO 4711]'),
-                    rangeQueryRegex = new RegExp('q=\\(' + escapeRegex(encodedRangeQuery) + '\\)');
+                    ]
+                };
+                const encodedRangeQuery = encodeURIComponent('foo:[1337 TO 4711]');
+                const rangeQueryRegex = new RegExp('q=\\(' + escapeRegex(encodedRangeQuery) + '\\)');
 
                 req = nock(solrUrl)
                     .post(solrIndexPath, rangeQueryRegex)
@@ -320,12 +316,12 @@ describe('Flora SOLR DataSource', () => {
         });
 
         it('should transform single filters', (done) => {
-            var request = {
-                    collection: 'article',
-                    filter: [
-                        [{ attribute: 'foo', operator: 'equal', value: 'foo' }]
-                    ]
-                };
+            const request = {
+                collection: 'article',
+                filter: [
+                    [{ attribute: 'foo', operator: 'equal', value: 'foo' }]
+                ]
+            };
 
             req = nock(solrUrl)
                 .post(solrIndexPath, /q=\(foo%3Afoo\)/)
@@ -335,18 +331,18 @@ describe('Flora SOLR DataSource', () => {
         });
 
         it('should transform complex filters', (done) => {
-            var request = {
-                    collection: 'article',
-                    search: 'foo bar',
-                    filter: [
-                        [
-                            { attribute: 'authorId', operator: 'equal', value: 1337 },
-                            { attribute: 'typeId', operator: 'equal', value: 4711 }
-                        ],
-                        [{ attribute: 'status', operator: 'equal', value: 'future' }]
-                    ]
-                },
-                paramRegex = /q=foo%20bar%20AND%20\(\(authorId%3A1337%20AND%20typeId%3A4711\)%20OR%20\(status%3Afuture\)\)/;
+            const request = {
+                collection: 'article',
+                search: 'foo bar',
+                filter: [
+                    [
+                        { attribute: 'authorId', operator: 'equal', value: 1337 },
+                        { attribute: 'typeId', operator: 'equal', value: 4711 }
+                    ],
+                    [{ attribute: 'status', operator: 'equal', value: 'future' }]
+                ]
+            };
+            const paramRegex = /q=foo%20bar%20AND%20\(\(authorId%3A1337%20AND%20typeId%3A4711\)%20OR%20\(status%3Afuture\)\)/;
 
             req = nock(solrUrl)
                 .post(solrIndexPath, paramRegex)
@@ -356,21 +352,21 @@ describe('Flora SOLR DataSource', () => {
         });
 
         it('should support composite key filters', (done) => {
-            var request = {
-                    collection: 'awesome_index',
-                    filter: [
-                        [
-                            {
-                                attribute: ['intKey', 'stringKey', 'boolKey'],
-                                operator: 'equal',
-                                // test string escaping and boolean conversion
-                                value: [[1337, '(foo)', true], [4711, 'bar!', false]]
-                            }
-                        ]
+            const request = {
+                collection: 'awesome_index',
+                filter: [
+                    [
+                        {
+                            attribute: ['intKey', 'stringKey', 'boolKey'],
+                            operator: 'equal',
+                            // test string escaping and boolean conversion
+                            value: [[1337, '(foo)', true], [4711, 'bar!', false]]
+                        }
                     ]
-                },
-                solrQuery,
-                paramRegex;
+                ]
+            };
+            let solrQuery;
+            let paramRegex;
 
             solrQuery = '((intKey:1337 AND stringKey:\\(foo\\) AND boolKey:1)';
             solrQuery += ' OR ';
@@ -384,7 +380,7 @@ describe('Flora SOLR DataSource', () => {
             dataSource.process(request, done);
         });
 
-        var supportedFilters = {
+        const supportedFilters = {
             equal: /date%3A2015%5C-12%5C-31/,
             greaterOrEqual: /date%3A%5B2015%5C-12%5C-31%20TO%20\*%5D/,
             lessOrEqual: /date%3A%5B\*%20TO%202015%5C-12%5C-31%5D/,
@@ -392,13 +388,13 @@ describe('Flora SOLR DataSource', () => {
         };
         Object.keys(supportedFilters).forEach((operator) => {
             it('should support "' + operator + '" filters', (done) => {
-                var paramRegEx = supportedFilters[operator],
-                    request = {
-                        collection: 'article',
-                        filter: [
-                            [{attribute: 'date', operator: operator, value: '2015-12-31'}]
-                        ]
-                    };
+                const paramRegEx = supportedFilters[operator];
+                const request = {
+                    collection: 'article',
+                    filter: [
+                        [{attribute: 'date', operator: operator, value: '2015-12-31'}]
+                    ]
+                };
 
                 req = nock(solrUrl)
                     .post('/solr/article/select', paramRegEx)
@@ -410,7 +406,7 @@ describe('Flora SOLR DataSource', () => {
 
         ['less', 'greater'].forEach((operator) => {
             it('should trigger an error for unsupported filter operator "' + operator + '"', (done) => {
-                var request = {
+                const request = {
                     collection: 'article',
                     filter: [
                         [{attribute: 'date', operator: operator, value: '2015-12-31'}]
@@ -426,7 +422,7 @@ describe('Flora SOLR DataSource', () => {
         });
 
         it('should append additional query parameters', (done) => {
-            var request = {
+            const request = {
                 collection: 'awesome_index',
                 queryAddition: "_val_:\"product(assetClassBoost,3)\"\n_val_:\"product(importance,50)\""
             };
@@ -441,7 +437,7 @@ describe('Flora SOLR DataSource', () => {
 
     describe('full-text search', () => {
         it('should add search term to query', (done) => {
-            var request = {
+            const request = {
                 collection: 'article',
                 search: 'fo(o)bar'
             };
@@ -454,7 +450,7 @@ describe('Flora SOLR DataSource', () => {
         });
 
         it('should support additional filter(s)', (done) => {
-            var request = {
+            const request = {
                 collection: 'article',
                 search: 'foo bar',
                 filter: [
@@ -472,7 +468,7 @@ describe('Flora SOLR DataSource', () => {
 
     describe('order', () => {
         it('single criterion', (done) => {
-            var request = {
+            const request = {
                 collection: 'article',
                 order: [{ attribute: 'foo', direction: 'asc' }]
             };
@@ -485,7 +481,7 @@ describe('Flora SOLR DataSource', () => {
         });
 
         it('multiple criteria', (done) => {
-            var request = {
+            const request = {
                 collection: 'article',
                 order: [
                     { attribute: 'foo', direction: 'asc' },
@@ -523,8 +519,8 @@ describe('Flora SOLR DataSource', () => {
             req = nock(solrUrl)
                 // only return sorted pagination params because they can appear in any order
                 .filteringRequestBody((body) => {
-                    var params = require('querystring').parse(body),
-                        paginationParams = [];
+                    const params = require('querystring').parse(body);
+                    const paginationParams = [];
 
                     ['rows', 'start'].forEach((key) => { // extract pagination params
                         if (params[key]) {
