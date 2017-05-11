@@ -240,12 +240,9 @@ class DataSource {
         const server = request.server || 'default';
         const queryParts = [];
         const params = { wt: 'json' };
-        const requestOpts = {
-            connectTimeout: 2000,
-            requestTimeout: 10000
-        };
+        const serverOpts = this.options.servers;
 
-        if (!this.options.servers[server]) return callback(new Error(`Server "${server}" not defined`));
+        if (!serverOpts[server]) return callback(new Error(`Server "${server}" not defined`));
 
         const requestUrl = this.options.servers[server].url + request.collection + '/select';
 
@@ -286,8 +283,10 @@ class DataSource {
             request._explain.params = params;
         }
 
-        if (this.options.servers[server].connectTimeout) requestOpts.connectTimeout = this.options.servers[server].connectTimeout;
-        if (this.options.servers[server].requestTimeout) requestOpts.requestTimeout = this.options.servers[server].requestTimeout;
+        const requestOpts = {
+            connectTimeout: serverOpts[server].connectTimeout || 2000,
+            requestTimeout: serverOpts[server].requestTimeout || 10000
+        };
 
         return querySolr(requestUrl, params, requestOpts, callback);
     }
