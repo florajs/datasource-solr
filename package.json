@@ -1,6 +1,6 @@
 {
   "name": "flora-solr",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "Solr connection for Flora",
   "main": "index.js",
   "scripts": {
