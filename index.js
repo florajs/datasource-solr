@@ -84,15 +84,27 @@ function escapeSpecialChars(value) {
 }
 
 /**
+ * @param {string} value
+ * @return {string}
+ * @private
+ */
+function escapeSpecialCharsSolrSyntax(value) {
+    const specialCharRegex = /(\\|\/|\+|-|&|\||!|\(|\)|\{|}|\[|]|\^|~|\?)/g;
+    return value.replace(specialCharRegex, '\\$1');
+}
+
+/**
  * Escape strings and convert boolean values.
  *
  * @param {*} value
+ * @param {boolean} exposeSolrSyntax
  * @return {*}
  * @private
  */
-function escapeValueForSolr(value) {
-    if (typeof value === 'string') value = escapeSpecialChars(value);
-    else if (typeof value === 'boolean') value = value === false ? 0 : 1;
+function escapeValueForSolr(value, exposeSolrSyntax) {
+    if (typeof value === 'string') {
+        value = exposeSolrSyntax ? escapeSpecialCharsSolrSyntax(value) : escapeSpecialChars(value);
+    } else if (typeof value === 'boolean') value = value === false ? 0 : 1;
     return value;
 }
 
@@ -249,7 +261,8 @@ class DataSource {
         if (request.attributes) params.fl = request.attributes.join(',');
         if (request.order) params.sort = buildSolrOrderString(request.order);
 
-        if (request.search) queryParts.push(escapeValueForSolr(request.search));
+        if (request.df) params.df = request.df;
+        if (request.search) queryParts.push(escapeValueForSolr(request.search, request.exposeSolrSyntax));
         if (request.filter) {
             try {
                 queryParts.push(buildSolrFilterString(request.filter));
