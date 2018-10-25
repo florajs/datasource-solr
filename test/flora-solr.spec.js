@@ -16,10 +16,6 @@ const ImplementationError = errors.ImplementationError;
 chai.use(require('sinon-chai'));
 sinon.test = sinonTest.configureTest(sinon);
 
-function escapeRegex(s) {
-    return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-}
-
 describe('Flora SOLR DataSource', () => {
     const solrUrl = 'http://example.com';
     const solrIndexPath = '/solr/article/select';
@@ -192,10 +188,9 @@ describe('Flora SOLR DataSource', () => {
     });
 
     describe('filters', () => {
-
         it('should send "*:*" if no filter is set', (done) => {
             req = nock(solrUrl)
-                .post(solrIndexPath, /q=\*%3A\*/)
+                .post(solrIndexPath, _.matches({ q: '*:*' }))
                 .reply(200, testResponse);
 
             dataSource.process({ collection: 'article' }, done);
@@ -210,10 +205,9 @@ describe('Flora SOLR DataSource', () => {
                         [{ attribute: 'foo', operator: 'equal', value: booleanValue !== 'false' }]
                     ]
                 };
-                const paramRegex = new RegExp('q=\\(foo%3A' + conversionTarget + '\\)');
 
                 req = nock(solrUrl)
-                    .post(solrIndexPath, paramRegex)
+                    .post(solrIndexPath, _.matches({ q: `(foo:${conversionTarget})` }))
                     .reply(200, testResponse);
 
                 dataSource.process(request, done);
@@ -227,10 +221,9 @@ describe('Flora SOLR DataSource', () => {
                     [{attribute: 'foo', operator: 'equal', value: [1, 3, 5, 7]}]
                 ]
             };
-            const paramRegex = new RegExp('q=\\(foo%3A\\(' + encodeURIComponent('1 OR 3 OR 5 OR 7') + '\\)');
 
             req = nock(solrUrl)
-                .post(solrIndexPath, paramRegex)
+                .post(solrIndexPath, _.matches({ q: '(foo:(1 OR 3 OR 5 OR 7))' }))
                 .reply(200, testResponse);
 
             dataSource.process(request, done);
@@ -248,11 +241,9 @@ describe('Flora SOLR DataSource', () => {
                         [{ attribute: 'foo', operator: 'equal', value: character + 'bar' }]
                     ]
                 };
-                const encodedChar = encodeURIComponent(character);
-                const paramRegex = new RegExp('q=\\(foo%3A%5C' + escapeRegex(encodedChar) + 'bar\\)');
 
                 req = nock(solrUrl)
-                    .post(solrIndexPath, paramRegex)
+                    .post(solrIndexPath, _.matches({ q: `(foo:\\${character}bar)` }))
                     .reply(200, testResponse);
 
                 dataSource.process(request, done);
@@ -267,11 +258,9 @@ describe('Flora SOLR DataSource', () => {
                         [{ attribute: 'foo', operator: 'greaterOrEqual', value: 1337 }]
                     ]
                 };
-                const encodedRangeQuery = encodeURIComponent('foo:[1337 TO *]');
-                const rangeQueryRegex = new RegExp('q=\\(' + escapeRegex(encodedRangeQuery) + '\\)');
 
                 req = nock(solrUrl)
-                    .post(solrIndexPath, rangeQueryRegex)
+                    .post(solrIndexPath, _.matches({ q: '(foo:[1337 TO *])' }))
                     .reply(200, testResponse);
 
                 dataSource.process(request, done);
@@ -284,11 +273,9 @@ describe('Flora SOLR DataSource', () => {
                         [{ attribute: 'foo', operator: 'lessOrEqual', value: 1337 }]
                     ]
                 };
-                const encodedRangeQuery = encodeURIComponent('foo:[* TO 1337]');
-                const rangeQueryRegex = new RegExp('q=\\(' + escapeRegex(encodedRangeQuery) + '\\)');
 
                 req = nock(solrUrl)
-                    .post(solrIndexPath, rangeQueryRegex)
+                    .post(solrIndexPath, _.matches({ q: '(foo:[* TO 1337])' }))
                     .reply(200, testResponse);
 
                 dataSource.process(request, done);
@@ -304,11 +291,9 @@ describe('Flora SOLR DataSource', () => {
                         ]
                     ]
                 };
-                const encodedRangeQuery = encodeURIComponent('foo:[1337 TO 4711]');
-                const rangeQueryRegex = new RegExp('q=\\(' + escapeRegex(encodedRangeQuery) + '\\)');
 
                 req = nock(solrUrl)
-                    .post(solrIndexPath, rangeQueryRegex)
+                    .post(solrIndexPath, _.matches({ q: '(foo:[1337 TO 4711])' }))
                     .reply(200, testResponse);
 
                 dataSource.process(request, done);
@@ -324,7 +309,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             req = nock(solrUrl)
-                .post(solrIndexPath, /q=\(foo%3Afoo\)/)
+                .post(solrIndexPath, _.matches({ q: '(foo:foo)' }))
                 .reply(200, testResponse);
 
             dataSource.process(request, done);
@@ -342,10 +327,9 @@ describe('Flora SOLR DataSource', () => {
                     [{ attribute: 'status', operator: 'equal', value: 'future' }]
                 ]
             };
-            const paramRegex = /q=foo%20bar%20AND%20\(\(authorId%3A1337%20AND%20typeId%3A4711\)%20OR%20\(status%3Afuture\)\)/;
 
             req = nock(solrUrl)
-                .post(solrIndexPath, paramRegex)
+                .post(solrIndexPath, _.matches({ q: 'foo bar AND ((authorId:1337 AND typeId:4711) OR (status:future))' }))
                 .reply(200, testResponse);
 
             dataSource.process(request, done);
@@ -365,30 +349,22 @@ describe('Flora SOLR DataSource', () => {
                     ]
                 ]
             };
-            let solrQuery;
-            let paramRegex;
-
-            solrQuery = '((intKey:1337 AND stringKey:\\(foo\\) AND boolKey:1)';
-            solrQuery += ' OR ';
-            solrQuery += '(intKey:4711 AND stringKey:bar\\! AND boolKey:0))';
-            paramRegex = new RegExp('q=' + encodeURIComponent(solrQuery).replace(/(\(|\))/g, '\\$1'));
 
             req = nock(solrUrl)
-                .post('/solr/awesome_index/select', paramRegex)
+                .post('/solr/awesome_index/select', _.matches({ q: '((intKey:1337 AND stringKey:\\(foo\\) AND boolKey:1) OR (intKey:4711 AND stringKey:bar\\! AND boolKey:0))' }))
                 .reply(200, testResponse);
 
             dataSource.process(request, done);
         });
 
         const supportedFilters = {
-            equal: /date%3A2015%5C-12%5C-31/,
-            greaterOrEqual: /date%3A%5B2015%5C-12%5C-31%20TO%20\*%5D/,
-            lessOrEqual: /date%3A%5B\*%20TO%202015%5C-12%5C-31%5D/,
-            notEqual: /\-date%3A2015%5C-12%5C-31/
+            equal: '(date:2015\\-12\\-31)',
+            greaterOrEqual: '(date:[2015\\-12\\-31 TO *])',
+            lessOrEqual: '(date:[* TO 2015\\-12\\-31])',
+            notEqual: '(-date:2015\\-12\\-31)'
         };
         Object.keys(supportedFilters).forEach((operator) => {
             it('should support "' + operator + '" filters', (done) => {
-                const paramRegEx = supportedFilters[operator];
                 const request = {
                     collection: 'article',
                     filter: [
@@ -397,7 +373,7 @@ describe('Flora SOLR DataSource', () => {
                 };
 
                 req = nock(solrUrl)
-                    .post('/solr/article/select', paramRegEx)
+                    .post('/solr/article/select', _.matches({ q: supportedFilters[operator] }))
                     .reply(200, testResponse);
 
                 dataSource.process(request, done);
@@ -428,7 +404,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             req = nock(solrUrl)
-                .post('/solr/awesome_index/select', /q=_val_%3A%22product\(assetClassBoost%2C3\)%22%20_val_%3A%22product\(importance%2C50\)%22/)
+                .post('/solr/awesome_index/select', _.matches({ q: '_val_:"product(assetClassBoost,3)" _val_:"product(importance,50)"' }))
                 .reply(200, testResponse);
 
             dataSource.process(request, done);
@@ -443,7 +419,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             req = nock(solrUrl)
-                .post(solrIndexPath, /q=fo%5C\(o%5C\)bar/)
+                .post(solrIndexPath, _.matches({ q: 'fo\\(o\\)bar' }))
                 .reply(200, testResponse);
 
             dataSource.process(request, done);
@@ -459,7 +435,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             req = nock(solrUrl)
-                .post(solrIndexPath, /q=foo%20bar%20AND%20\(authorId%3A1337\)/)
+                .post(solrIndexPath, _.matches({ q: 'foo bar AND (authorId:1337)' }))
                 .reply(200, testResponse);
 
             dataSource.process(request, done);
@@ -508,7 +484,7 @@ describe('Flora SOLR DataSource', () => {
 
         it('should overwrite SOLR default limit for sub-resource processing', (done) => {
             req = nock(solrUrl)
-                .post(solrIndexPath, /rows=1000000/)
+                .post(solrIndexPath, _.matches({ rows: '1000000' }))
                 .reply(200, testResponse);
 
             // no explicit limit set
@@ -617,7 +593,7 @@ describe('Flora SOLR DataSource', () => {
     describe('limitPer', () => {
         it('should activate result grouping', (done) => {
             req = nock(solrUrl)
-                .post(solrIndexPath, /group=true/)
+                .post(solrIndexPath, _.matches({ group: { 0: 'true' }}))
                 .reply(200, testResponse);
 
             dataSource.process({ collection: 'article', limitPer: 'seriesId' }, done);
@@ -625,7 +601,7 @@ describe('Flora SOLR DataSource', () => {
 
         it('should use limitPer as group.field parameter', (done) => {
             req = nock(solrUrl)
-                .post(solrIndexPath, /group\.field=seriesId/)
+                .post(solrIndexPath, _.matches({ group: { field: 'seriesId' }}))
                 .reply(200, testResponse);
 
             dataSource.process({ collection: 'article', limitPer: 'seriesId' }, done);
@@ -633,10 +609,12 @@ describe('Flora SOLR DataSource', () => {
 
         it('should return flat list instead of groups', (done) => {
             req = nock(solrUrl)
-                .post(solrIndexPath, (body) => {
-                    return body['group.format'] === 'simple'
-                        && body['group.main'] === 'true';
-                })
+                .post(solrIndexPath, _.matches({
+                    group: {
+                        1: { format: 'simple' },
+                        main: 'true'
+                    }
+                }))
                 .reply(200, testResponse);
 
             dataSource.process({ collection: 'article', limitPer: 'seriesId'}, done);
@@ -644,10 +622,7 @@ describe('Flora SOLR DataSource', () => {
 
         it('should set limit', (done) => {
             req = nock(solrUrl)
-                .post(solrIndexPath, (body) => {
-                    return body['group.limit'] == 3
-                        && body['rows'] == 1000000;
-                })
+                .post(solrIndexPath, _.matches({ group: { limit: '3' }, rows: '1000000' }))
                 .reply(200, testResponse);
 
             dataSource.process({ collection: 'article', limitPer: 'seriesId', limit: 3}, done);
@@ -656,7 +631,8 @@ describe('Flora SOLR DataSource', () => {
         it('should not set group sort order', (done) => {
             req = nock(solrUrl)
                 .post(solrIndexPath, (body) => {
-                    return !body['group.sort'];
+                    const { group } = body;
+                    return group && typeof group === 'object' && !group.hasOwnProperty('sort');
                 })
                 .reply(200, testResponse);
 
