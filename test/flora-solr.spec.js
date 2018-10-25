@@ -7,14 +7,13 @@ const nock = require('nock');
 const errors = require('flora-errors');
 const http = require('http');
 const sinon = require('sinon');
-const sinonTest = require('sinon-test');
+const sandbox = require('sinon-test')(sinon);
 
 const FloraSolr = require('../index');
 
 const ImplementationError = errors.ImplementationError;
 
 chai.use(require('sinon-chai'));
-sinon.test = sinonTest.configureTest(sinon);
 
 describe('Flora SOLR DataSource', () => {
     const solrUrl = 'http://example.com';
@@ -515,7 +514,7 @@ describe('Flora SOLR DataSource', () => {
 
     describe('timeout', () => {
         describe('defaults', () => {
-            it('should set connect timeout to 2 seconds', sinon.test(function (done) {
+            it('should set connect timeout to 2 seconds', sandbox(function (done) {
                 const requestSpy = this.spy(http, 'request');
 
                 req = nock(solrUrl)
@@ -543,7 +542,7 @@ describe('Flora SOLR DataSource', () => {
         });
 
         describe('config options', () => {
-            it('should overwrite default connect timeout', sinon.test(function (done) {
+            it('should overwrite default connect timeout', sandbox(function (done) {
                 const TIMEOUT = 5000;
                 const requestSpy = this.spy(http, 'request');
                 const ds = new FloraSolr(api, {
