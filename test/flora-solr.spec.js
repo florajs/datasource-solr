@@ -4,14 +4,13 @@ const chai = require('chai');
 const { expect } = chai;
 const _ = require('lodash');
 const nock = require('nock');
-const errors = require('flora-errors');
 const http = require('http');
 const sinon = require('sinon');
 const sandbox = require('sinon-test')(sinon);
 
 const FloraSolr = require('../index');
 
-const ImplementationError = errors.ImplementationError;
+const { ImplementationError } = require('flora-errors');
 
 chai.use(require('sinon-chai'));
 
@@ -27,7 +26,7 @@ describe('Flora SOLR DataSource', () => {
     beforeEach(() => {
         dataSource = new FloraSolr(api, {
             servers: {
-                default: { url: 'http://example.com/solr/' }
+                default: { urls: ['http://example.com/solr/'] }
             }
         });
     });
@@ -37,9 +36,7 @@ describe('Flora SOLR DataSource', () => {
         nock.cleanAll();
     });
 
-    after(() => {
-        nock.restore();
-    });
+    after(() => nock.restore());
 
     describe('interface', () => {
         it('should export a query function', () => {
@@ -92,8 +89,8 @@ describe('Flora SOLR DataSource', () => {
         ];
         const ds = new FloraSolr(api, {
             servers: {
-                'default': { url: 'http://article.example.com/solr/' },
-                other: { url: 'http://other.example.com/solr/' }
+                'default': { urls: ['http://article.example.com/solr/'] },
+                other: { urls: ['http://other.example.com/solr/'] }
             }
         });
 
@@ -152,7 +149,7 @@ describe('Flora SOLR DataSource', () => {
             // nock can't fake request errors at the moment, so we have to make a real request to nonexistent host
             dataSource = new FloraSolr(api, {
                 servers: {
-                    'default': { url: 'http://doesnotexists.localhost/solr/' }
+                    'default': { urls: ['http://doesnotexists.localhost/solr/'] }
                 }
             });
 
@@ -548,7 +545,7 @@ describe('Flora SOLR DataSource', () => {
                 const ds = new FloraSolr(api, {
                     servers: {
                         default: {
-                            url: 'http://example.com/solr/',
+                            urls: ['http://example.com/solr/'],
                             connectTimeout: TIMEOUT
                         }
                     }
@@ -569,7 +566,7 @@ describe('Flora SOLR DataSource', () => {
                 const ds = new FloraSolr(api, {
                     servers: {
                         default: {
-                            url: 'http://example.com/solr/',
+                            urls: ['http://example.com/solr/'],
                             requestTimeout: 1500
                         }
                     }

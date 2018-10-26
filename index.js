@@ -114,11 +114,11 @@ function escapeValueForSolr(value, exposeSolrSyntax) {
  * @private
  */
 function convertFilterToSolrSyntax(filter) {
-    let value = filter.value;
-    const operator = filter.operator;
+    const { operator } = filter;
+    let { value } = filter;
 
     if (SUPPORTED_FILTERS.indexOf(filter.operator) === -1) {
-        throw new ImplementationError(`DataSource "flora-solr" does not support "${filter.operator}" filters`);
+        throw new ImplementationError(`DataSource "flora-solr" does not support "${operator}" filters`);
     }
 
     if (!Array.isArray(filter.attribute)) {
@@ -184,8 +184,16 @@ function prepareQueryAddition(queryAdditions) {
 }
 
 /**
+ * @param {Array} urls
+ * @return {string}
+ */
+function getUrl(urls) {
+    return urls.length > 1 ? urls[Math.floor(Math.random() * urls.length)] : urls[0];
+}
+
+/**
  *
- * @param {Object} requestUrl
+ * @param {string} requestUrl
  * @param {Object} params
  * @param {Object} requestOptions
  * @param {Function} callback
@@ -256,7 +264,7 @@ class DataSource {
 
         if (!serverOpts[server]) return callback(new Error(`Server "${server}" not defined`));
 
-        const requestUrl = this.options.servers[server].url + request.collection + '/select';
+        const requestUrl = getUrl(serverOpts[server].urls) + request.collection + '/select';
 
         if (request.attributes) params.fl = request.attributes.join(',');
         if (request.order) params.sort = buildSolrOrderString(request.order);
