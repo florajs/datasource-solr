@@ -184,11 +184,24 @@ function prepareQueryAddition(queryAdditions) {
 }
 
 /**
- * @param {Array} urls
- * @return {string}
+ * @param {Object} servers
+ * @return {Object}
  */
-function getUrl(urls) {
-    return urls.length > 1 ? urls[Math.floor(Math.random() * urls.length)] : urls[0];
+function getUrlGenerators(servers) {
+    return Object.keys(servers)
+        .reduce((acc, server) => {
+            const { urls } = servers[server];
+
+            acc[server] = (function* urlGenerator() {
+                while (true) {
+                    for (let i = 0, l = urls.length; i < l; ++i) {
+                        yield urls[i];
+                    }
+                }
+            }());
+
+            return acc;
+        }, {});
 }
 
 /**
@@ -244,6 +257,7 @@ class DataSource {
      */
     constructor(api, config) {
         this.options = config;
+        this._urls = getUrlGenerators(config.servers);
     }
 
     /**
@@ -264,7 +278,7 @@ class DataSource {
 
         if (!serverOpts[server]) return callback(new Error(`Server "${server}" not defined`));
 
-        const requestUrl = getUrl(serverOpts[server].urls) + request.collection + '/select';
+        const requestUrl = (this._urls[server].next().value) + request.collection + '/select';
 
         if (request.attributes) params.fl = request.attributes.join(',');
         if (request.order) params.sort = buildSolrOrderString(request.order);
