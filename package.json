@@ -4,9 +4,10 @@
   "description": "Solr connection for Flora",
   "main": "index.js",
   "scripts": {
-    "test": "grunt test",
-    "lint": "grunt lint"
+    "test": "eslint . && mocha",
+    "lint": "eslint ."
   },
+  "pre-commit": "test",
   "author": {
     "name": "BörseGo AG",
     "email": "it@boerse-go.de"
@@ -29,10 +30,10 @@
     }
   ],
   "engines": {
-    "node": ">=6"
+    "node": ">=8"
   },
   "dependencies": {
-    "flora-errors": "^0.8.0",
+    "flora-errors": "^0.9.0",
     "lodash": "^4.0.0"
   },
   "devDependencies": {
@@ -44,17 +45,9 @@
     "eslint": "^5.7.0",
     "eslint-config-airbnb-base": "^13.1.0",
     "eslint-plugin-import": "^2.2.0",
-    "grunt": "^1.0.1",
-    "grunt-cli": "^1.2.0",
-    "grunt-contrib-clean": "^2.0.0",
-    "grunt-eslint": "^21.0.0",
-    "grunt-mocha-istanbul": "^5.0.1",
-    "grunt-mocha-test": "^0.13.2",
-    "istanbul": "^0.4.2",
-    "load-grunt-tasks": "^4.0.0",
     "mocha": "^5.2.0",
-    "mocha-bamboo-reporter": "^1.1.0",
     "nock": "^10.0.1",
+    "pre-commit": "^1.2.2",
     "sinon": "^7.1.0",
     "sinon-chai": "^3.2.0",
     "sinon-test": "^2.4.0"
