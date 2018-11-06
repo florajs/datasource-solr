@@ -258,6 +258,8 @@ class DataSource {
     constructor(api, config) {
         this.options = config;
         this._urls = getUrlGenerators(config.servers);
+        this._status = config._status;
+        delete config._status;
     }
 
     /**
@@ -314,6 +316,7 @@ class DataSource {
         params.q = queryParts.join(' AND ');
 
         if (request._explain) Object.assign(request._explain, { url: requestUrl, params });
+        if (this._status) this._status.increment('dataSourceQueries');
 
         const requestOpts = {
             connectTimeout: serverOpts[server].connectTimeout || 2000,
