@@ -313,10 +313,7 @@ class DataSource {
 
         params.q = queryParts.join(' AND ');
 
-        if (request._explain) {
-            request._explain.url = requestUrl;
-            request._explain.params = params;
-        }
+        if (request._explain) Object.assign(request._explain, { url: requestUrl, params });
 
         const requestOpts = {
             connectTimeout: serverOpts[server].connectTimeout || 2000,
