@@ -209,45 +209,47 @@ function getUrlGenerators(servers) {
  * @param {string} requestUrl
  * @param {Object} params
  * @param {Object} requestOptions
- * @param {Function} callback
+ * @returns {Promise}
  * @private
  */
-function querySolr(requestUrl, params, requestOptions, callback) {
-    const options = Object.assign(url.parse(requestUrl), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        timeout: requestOptions.connectTimeout
-    });
+function querySolr(requestUrl, params, requestOptions) {
+    return new Promise((resolve, reject) => {
+        const options = Object.assign(url.parse(requestUrl), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            timeout: requestOptions.connectTimeout
+        });
 
-    const req = http.request(options, (res) => {
-        const chunks = [];
+        const req = http.request(options, (res) => {
+            const chunks = [];
 
-        res.on('data', chunk => chunks.push(chunk));
+            res.on('data', chunk => chunks.push(chunk));
 
-        res.on('end', () => {
-            const data = parseData(Buffer.concat(chunks).toString('utf8'));
+            res.on('end', () => {
+                const data = parseData(Buffer.concat(chunks).toString('utf8'));
 
-            if (res.statusCode >= 400 || data instanceof Error) {
-                const error = new Error('Solr error: ' + res.statusCode + ' ' + http.STATUS_CODES[res.statusCode]);
-                if (data instanceof Error) {
-                    error.message += ': ' + data.message;
-                } else if (data && data.error && data.error.msg) {
-                    error.message += ': ' + data.error.msg;
+                if (res.statusCode >= 400 || data instanceof Error) {
+                    const error = new Error('Solr error: ' + res.statusCode + ' ' + http.STATUS_CODES[res.statusCode]);
+                    if (data instanceof Error) {
+                        error.message += ': ' + data.message;
+                    } else if (data && data.error && data.error.msg) {
+                        error.message += ': ' + data.error.msg;
+                    }
+
+                    return reject(error);
                 }
 
-                return callback(error);
-            }
-
-            return callback(null, { totalCount: data.response.numFound, data: data.response.docs });
+                return resolve({ totalCount: data.response.numFound, data: data.response.docs });
+            });
         });
+
+        req.setTimeout(requestOptions.requestTimeout, () => req.abort());
+
+        req.write(querystring.stringify(params)); // add params to POST body
+
+        req.on('error', err => reject(err));
+        req.end();
     });
-
-    req.setTimeout(requestOptions.requestTimeout, () => req.abort());
-
-    req.write(querystring.stringify(params)); // add params to POST body
-
-    req.on('error', callback);
-    req.end();
 }
 
 class DataSource {
@@ -270,15 +272,15 @@ class DataSource {
 
     /**
      * @param {Object} request
-     * @param {Function} callback
+     * @returns {Promise<Object>}
      */
-    process(request, callback) {
+    async process(request) {
         const server = request.server || 'default';
         const queryParts = [];
         const params = { wt: 'json' };
         const serverOpts = this.options.servers;
 
-        if (!serverOpts[server]) return callback(new Error(`Server "${server}" not defined`));
+        if (!serverOpts[server]) throw new Error(`Server "${server}" not defined`);
 
         const requestUrl = (this._urls[server].next().value) + request.collection + '/select';
 
@@ -288,11 +290,7 @@ class DataSource {
         if (request.df) params.df = request.df;
         if (request.search) queryParts.push(escapeValueForSolr(request.search, request.exposeSolrSyntax));
         if (request.filter) {
-            try {
-                queryParts.push(buildSolrFilterString(request.filter));
-            } catch (e) {
-                return callback(e);
-            }
+            queryParts.push(buildSolrFilterString(request.filter));
         }
         if (request.queryAddition) queryParts.push(prepareQueryAddition(request.queryAddition));
         if (queryParts.length === 0) queryParts.push('*:*');
@@ -323,15 +321,14 @@ class DataSource {
             requestTimeout: serverOpts[server].requestTimeout || 10000
         };
 
-        return querySolr(requestUrl, params, requestOpts, callback);
+        return querySolr(requestUrl, params, requestOpts);
     }
 
     /**
-     * @param {Function} callback
+     * @returns {Promise}
      */
-    close(callback) {
-        // TODO: implement
-        if (callback) callback();
+    close() {
+        return Promise.resolve();
     }
 
     /**
