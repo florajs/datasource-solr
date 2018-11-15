@@ -7,13 +7,7 @@ const querystring = require('querystring');
 const _ = require('lodash');
 const { ImplementationError } = require('flora-errors');
 
-const SUPPORTED_FILTERS = [
-    'equal',
-    'notEqual',
-    'lessOrEqual',
-    'greaterOrEqual',
-    'range'
-];
+const SUPPORTED_FILTERS = ['equal', 'notEqual', 'lessOrEqual', 'greaterOrEqual', 'range'];
 
 const NO_LIMIT = 1000000;
 
@@ -68,9 +62,7 @@ function rangify(filters) {
     const rangeQueryAttrs = rangeQueries.map(rangeQuery => rangeQuery[0].attribute);
 
     // copy non-range query attributes
-    return filters
-        .filter(filter => rangeQueryAttrs.indexOf(filter.attribute) === -1)
-        .concat(rangeQueries.map(createRangeFilter));
+    return filters.filter(filter => rangeQueryAttrs.indexOf(filter.attribute) === -1).concat(rangeQueries.map(createRangeFilter));
 }
 
 /**
@@ -138,7 +130,7 @@ function convertFilterToSolrSyntax(filter) {
 
     // convert composite keys to SOLR syntax
     return value
-        .map((values) => {
+        .map(values => {
             const conditions = values.map((val, index) => filter.attribute[index] + ':' + escapeValueForSolr(val));
             return '(' + conditions.join(' AND ') + ')';
         })
@@ -146,7 +138,7 @@ function convertFilterToSolrSyntax(filter) {
 }
 
 function buildSolrFilterString(floraFilters) {
-    const orConditions = floraFilters.map((andFilters) => {
+    const orConditions = floraFilters.map(andFilters => {
         if (andFilters.length > 1) andFilters = rangify(andFilters);
         const conditions = andFilters.map(convertFilterToSolrSyntax);
         return '(' + conditions.join(' AND ') + ')';
@@ -163,16 +155,14 @@ function buildSolrFilterString(floraFilters) {
  * @private
  */
 function buildSolrOrderString(floraOrders) {
-    return floraOrders
-        .map(order => (order.attribute + ' ' + order.direction))
-        .join(',');
+    return floraOrders.map(order => order.attribute + ' ' + order.direction).join(',');
 }
 
 function parseData(str) {
     try {
         return JSON.parse(str);
     } catch (e) {
-        return new Error('Couldn\'t parse response: ' + str);
+        return new Error('Could not parse response: ' + str);
     }
 }
 
@@ -188,20 +178,19 @@ function prepareQueryAddition(queryAdditions) {
  * @return {Object}
  */
 function getUrlGenerators(servers) {
-    return Object.keys(servers)
-        .reduce((acc, server) => {
-            const { urls } = servers[server];
+    return Object.keys(servers).reduce((acc, server) => {
+        const { urls } = servers[server];
 
-            acc[server] = (function* urlGenerator() {
-                while (true) {
-                    for (let i = 0, l = urls.length; i < l; ++i) {
-                        yield urls[i];
-                    }
+        acc[server] = (function* urlGenerator() {
+            while (true) {
+                for (let i = 0, l = urls.length; i < l; ++i) {
+                    yield urls[i];
                 }
-            }());
+            }
+        })();
 
-            return acc;
-        }, {});
+        return acc;
+    }, {});
 }
 
 /**
@@ -220,7 +209,7 @@ function querySolr(requestUrl, params, requestOptions) {
             timeout: requestOptions.connectTimeout
         });
 
-        const req = http.request(options, (res) => {
+        const req = http.request(options, res => {
             const chunks = [];
 
             res.on('data', chunk => chunks.push(chunk));
@@ -267,8 +256,7 @@ class DataSource {
     /**
      * @public
      */
-    prepare() {
-    }
+    prepare() {}
 
     /**
      * @param {Object} request
@@ -282,7 +270,7 @@ class DataSource {
 
         if (!serverOpts[server]) throw new Error(`Server "${server}" not defined`);
 
-        const requestUrl = (this._urls[server].next().value) + request.collection + '/select';
+        const requestUrl = this._urls[server].next().value + request.collection + '/select';
 
         if (request.attributes) params.fl = request.attributes.join(',');
         if (request.order) params.sort = buildSolrOrderString(request.order);
