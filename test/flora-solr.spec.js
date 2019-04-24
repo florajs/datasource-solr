@@ -144,7 +144,7 @@ describe('Flora SOLR DataSource', () => {
             });
 
             dataSource.process({ collection: 'article' }).catch(err => {
-                expect(err.code).to.equal('ENOTFOUND');
+                expect(err.code).to.equal('ECONNREFUSED');
                 done();
             });
         });
