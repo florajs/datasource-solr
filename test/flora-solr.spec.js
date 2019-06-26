@@ -597,7 +597,7 @@ describe('Flora SOLR DataSource', () => {
             req = nock(solrUrl)
                 .post(solrIndexPath, body => {
                     const { group } = body;
-                    return group && typeof group === 'object' && !group.hasOwnProperty('sort');
+                    return group && typeof group === 'object' && !Object.prototype.hasOwnProperty.call(group, 'sort');
                 })
                 .reply(200, testResponse);
 
