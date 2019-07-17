@@ -236,7 +236,11 @@ function querySolr(requestUrl, params, requestOptions) {
 
         req.write(querystring.stringify(params)); // add params to POST body
 
-        req.on('error', err => reject(err));
+        req.on('error', err => {
+            err.message = 'Solr error: ' + err.message + ' (' + options.host + ')';
+            reject(err);
+        });
+
         req.end();
     });
 }
