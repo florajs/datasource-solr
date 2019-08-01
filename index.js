@@ -280,7 +280,7 @@ class DataSource {
         if (request.order) params.sort = buildSolrOrderString(request.order);
 
         if (request.df) params.df = request.df;
-        if (request.search) queryParts.push(escapeValueForSolr(request.search, request.exposeSolrSyntax));
+        if (request.search && request.search.trim()) queryParts.push(escapeValueForSolr(request.search, request.exposeSolrSyntax));
         if (request.filter) {
             queryParts.push(buildSolrFilterString(request.filter));
         }
