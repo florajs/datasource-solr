@@ -400,6 +400,20 @@ describe('Flora SOLR DataSource', () => {
 
             dataSource.process(request);
         });
+
+        it.only('should ignore empty search terms', () => {
+            const request = {
+                collection: 'article',
+                search: ' ',
+                filter: [[{ attribute: 'authorId', operator: 'equal', value: 1337 }]]
+            };
+
+            req = nock(solrUrl)
+                .post(solrIndexPath, _.matches({ q: '(authorId:1337)' }))
+                .reply(200, testResponse);
+
+            dataSource.process(request);
+        });
     });
 
     describe('order', () => {
