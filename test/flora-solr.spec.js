@@ -401,7 +401,7 @@ describe('Flora SOLR DataSource', () => {
             dataSource.process(request);
         });
 
-        it.only('should ignore empty search terms', () => {
+        it('should ignore empty search terms', () => {
             const request = {
                 collection: 'article',
                 search: ' ',
