@@ -245,6 +245,25 @@ function querySolr(requestUrl, params, requestOptions) {
     });
 }
 
+function prepareSearchTerm(request) {
+    const escapedSearchTerm = escapeValueForSolr(request.search, request.exposeSolrSyntax);
+    const allowedSearchFields =
+        request.allowedSearchFields && request.allowedSearchFields.trim() ? request.allowedSearchFields.trim().split(',') : [];
+
+    if (!allowedSearchFields.length) {
+        return escapedSearchTerm;
+    }
+
+    const regex = new RegExp(`^(?<field>${allowedSearchFields.join('|')}):(?<search>.+)`);
+    const match = regex.exec(request.search);
+
+    if (match === null) {
+        return escapedSearchTerm;
+    }
+
+    return `(${match.groups.field}:"${match.groups.search}")`;
+}
+
 class DataSource {
     /**
      * @param {Api} api
@@ -280,7 +299,7 @@ class DataSource {
         if (request.order) params.sort = buildSolrOrderString(request.order);
 
         if (request.df) params.df = request.df;
-        if (request.search && request.search.trim()) queryParts.push(escapeValueForSolr(request.search, request.exposeSolrSyntax));
+        if (request.search && request.search.trim()) queryParts.push(prepareSearchTerm(request));
         if (request.filter) {
             queryParts.push(buildSolrFilterString(request.filter));
         }

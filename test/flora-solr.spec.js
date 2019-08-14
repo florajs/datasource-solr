@@ -414,6 +414,34 @@ describe('Flora SOLR DataSource', () => {
 
             dataSource.process(request);
         });
+
+        it('should search in fields', () => {
+            const request = {
+                collection: 'article',
+                search: 'title:foo bar',
+                allowedSearchFields: 'title'
+            };
+
+            req = nock(solrUrl)
+                .post(solrIndexPath, _.matches({ q: '(title:"foo bar")' }))
+                .reply(200, testResponse);
+
+            dataSource.process(request);
+        });
+
+        it('should fallback to fulltext search if field is not allowed', () => {
+            const request = {
+                collection: 'article',
+                search: 'nonallowedfield:foobar',
+                allowedSearchFields: 'title'
+            };
+
+            req = nock(solrUrl)
+                .post(solrIndexPath, _.matches({ q: 'nonallowedfield\\:foobar' }))
+                .reply(200, testResponse);
+
+            dataSource.process(request);
+        });
     });
 
     describe('order', () => {
