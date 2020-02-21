@@ -277,7 +277,11 @@ class DataSource {
         this._status = config._status;
         delete config._status;
 
-        this._agent = new http.Agent({ maxSockets: 10 });
+        this._agent = new http.Agent({
+            maxSockets: 10,
+            keepAlive: true,
+            keepAliveMsecs: 10000
+        });
     }
 
     /**
