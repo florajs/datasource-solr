@@ -198,15 +198,17 @@ function getUrlGenerators(servers) {
  * @param {string} requestUrl
  * @param {Object} params
  * @param {Object} requestOptions
+ * @param {Agent} agent
  * @returns {Promise}
  * @private
  */
-function querySolr(requestUrl, params, requestOptions) {
+function querySolr(requestUrl, params, requestOptions, agent) {
     return new Promise((resolve, reject) => {
         const options = Object.assign(url.parse(requestUrl), {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            timeout: requestOptions.connectTimeout
+            timeout: requestOptions.connectTimeout,
+            agent
         });
 
         const req = http.request(options, res => {
@@ -274,6 +276,8 @@ class DataSource {
         this._urls = getUrlGenerators(config.servers);
         this._status = config._status;
         delete config._status;
+
+        this._agent = new http.Agent({ maxSockets: 10 });
     }
 
     /**
@@ -332,7 +336,7 @@ class DataSource {
             requestTimeout: serverOpts[server].requestTimeout || 10000
         };
 
-        return querySolr(requestUrl, params, requestOpts);
+        return querySolr(requestUrl, params, requestOpts, this._agent);
     }
 
     /**
