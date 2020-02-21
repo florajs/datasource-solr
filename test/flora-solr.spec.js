@@ -284,7 +284,10 @@ describe('Flora SOLR DataSource', () => {
                 collection: 'article',
                 search: 'foo bar',
                 filter: [
-                    [{ attribute: 'authorId', operator: 'equal', value: 1337 }, { attribute: 'typeId', operator: 'equal', value: 4711 }],
+                    [
+                        { attribute: 'authorId', operator: 'equal', value: 1337 },
+                        { attribute: 'typeId', operator: 'equal', value: 4711 }
+                    ],
                     [{ attribute: 'status', operator: 'equal', value: 'future' }]
                 ]
             };
@@ -305,7 +308,10 @@ describe('Flora SOLR DataSource', () => {
                             attribute: ['intKey', 'stringKey', 'boolKey'],
                             operator: 'equal',
                             // test string escaping and boolean conversion
-                            value: [[1337, '(foo)', true], [4711, 'bar!', false]]
+                            value: [
+                                [1337, '(foo)', true],
+                                [4711, 'bar!', false]
+                            ]
                         }
                     ]
                 ]
@@ -461,7 +467,10 @@ describe('Flora SOLR DataSource', () => {
         it('multiple criteria', () => {
             const request = {
                 collection: 'article',
-                order: [{ attribute: 'foo', direction: 'asc' }, { attribute: 'bar', direction: 'desc' }]
+                order: [
+                    { attribute: 'foo', direction: 'asc' },
+                    { attribute: 'bar', direction: 'desc' }
+                ]
             };
 
             req = nock(solrUrl)
@@ -597,7 +606,7 @@ describe('Flora SOLR DataSource', () => {
     describe('limitPer', () => {
         it('should activate result grouping', () => {
             req = nock(solrUrl)
-                .post(solrIndexPath, _.matches({ group: { 0: 'true' } }))
+                .post(solrIndexPath, body => body.group && body.group === 'true')
                 .reply(200, testResponse);
 
             dataSource.process({ collection: 'article', limitPer: 'seriesId' });
@@ -605,7 +614,7 @@ describe('Flora SOLR DataSource', () => {
 
         it('should use limitPer as group.field parameter', () => {
             req = nock(solrUrl)
-                .post(solrIndexPath, _.matches({ group: { field: 'seriesId' } }))
+                .post(solrIndexPath, body => body['group.field'] && body['group.field'] === 'seriesId')
                 .reply(200, testResponse);
 
             dataSource.process({ collection: 'article', limitPer: 'seriesId' });
@@ -613,15 +622,7 @@ describe('Flora SOLR DataSource', () => {
 
         it('should return flat list instead of groups', () => {
             req = nock(solrUrl)
-                .post(
-                    solrIndexPath,
-                    _.matches({
-                        group: {
-                            1: { format: 'simple' },
-                            main: 'true'
-                        }
-                    })
-                )
+                .post(solrIndexPath, body => body['group.main'] === 'true' && body['group.format'] === 'simple')
                 .reply(200, testResponse);
 
             dataSource.process({ collection: 'article', limitPer: 'seriesId' });
@@ -629,7 +630,7 @@ describe('Flora SOLR DataSource', () => {
 
         it('should set limit', () => {
             req = nock(solrUrl)
-                .post(solrIndexPath, _.matches({ group: { limit: '3' }, rows: '1000000' }))
+                .post(solrIndexPath, body => body['group.limit'] === '3' && body.rows === '1000000')
                 .reply(200, testResponse);
 
             dataSource.process({ collection: 'article', limitPer: 'seriesId', limit: 3 });
@@ -637,10 +638,7 @@ describe('Flora SOLR DataSource', () => {
 
         it('should not set group sort order', () => {
             req = nock(solrUrl)
-                .post(solrIndexPath, body => {
-                    const { group } = body;
-                    return group && typeof group === 'object' && !Object.prototype.hasOwnProperty.call(group, 'sort');
-                })
+                .post(solrIndexPath, body => !Object.prototype.hasOwnProperty.call(body, 'group.sort'))
                 .reply(200, testResponse);
 
             dataSource.process({
