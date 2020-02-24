@@ -278,7 +278,7 @@ class DataSource {
         delete config._status;
 
         this._agent = new http.Agent({
-            maxSockets: 10,
+            maxSockets: 5,
             keepAlive: true,
             keepAliveMsecs: 10000
         });
