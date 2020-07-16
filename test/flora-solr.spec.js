@@ -4,7 +4,6 @@
 
 const chai = require('chai');
 const { expect } = chai;
-const _ = require('lodash');
 const nock = require('nock');
 const http = require('http');
 const sinon = require('sinon');
@@ -189,22 +188,25 @@ describe('Flora SOLR DataSource', () => {
     describe('filters', () => {
         it('should send "*:*" if no filter is set', () => {
             req = nock(solrUrl)
-                .post(solrIndexPath, _.matches({ q: '*:*' }))
+                .post(solrIndexPath, body => body.q && body.q === '*:*')
                 .reply(200, testResponse);
 
             dataSource.process({ collection: 'article' });
         });
 
         // test conversion of boolean values
-        _({ false: 0, true: 1 }).forEach((conversionTarget, booleanValue) => {
+        [
+            [false, 0],
+            [true, 1]
+        ].forEach(([booleanValue, conversionTarget]) => {
             it('should transform boolean ' + booleanValue + ' value to ' + conversionTarget + '', () => {
                 const request = {
                     collection: 'article',
-                    filter: [[{ attribute: 'foo', operator: 'equal', value: booleanValue !== 'false' }]]
+                    filter: [[{ attribute: 'foo', operator: 'equal', value: booleanValue }]]
                 };
 
                 req = nock(solrUrl)
-                    .post(solrIndexPath, _.matches({ q: `(foo:${conversionTarget})` }))
+                    .post(solrIndexPath, body => body.q && body.q === `(foo:${conversionTarget})`)
                     .reply(200, testResponse);
 
                 dataSource.process(request);
@@ -218,7 +220,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             req = nock(solrUrl)
-                .post(solrIndexPath, _.matches({ q: '(foo:(1 OR 3 OR 5 OR 7))' }))
+                .post(solrIndexPath, body => body.q && body.q === '(foo:(1 OR 3 OR 5 OR 7))')
                 .reply(200, testResponse);
 
             dataSource.process(request);
@@ -233,7 +235,7 @@ describe('Flora SOLR DataSource', () => {
                 };
 
                 req = nock(solrUrl)
-                    .post(solrIndexPath, _.matches({ q: `(foo:\\${character}bar)` }))
+                    .post(solrIndexPath, body => body.q && body.q === `(foo:\\${character}bar)`)
                     .reply(200, testResponse);
 
                 dataSource.process(request);
@@ -248,7 +250,7 @@ describe('Flora SOLR DataSource', () => {
                 };
 
                 req = nock(solrUrl)
-                    .post(solrIndexPath, _.matches({ q: '(foo:[1337 TO *])' }))
+                    .post(solrIndexPath, body => body.q && body.q === '(foo:[1337 TO *])')
                     .reply(200, testResponse);
 
                 dataSource.process(request);
@@ -261,7 +263,7 @@ describe('Flora SOLR DataSource', () => {
                 };
 
                 req = nock(solrUrl)
-                    .post(solrIndexPath, _.matches({ q: '(foo:[* TO 1337])' }))
+                    .post(solrIndexPath, body => body.q && body.q === '(foo:[* TO 1337])')
                     .reply(200, testResponse);
 
                 dataSource.process(request);
@@ -279,7 +281,7 @@ describe('Flora SOLR DataSource', () => {
                 };
 
                 req = nock(solrUrl)
-                    .post(solrIndexPath, _.matches({ q: '(foo:[1337 TO 4711])' }))
+                    .post(solrIndexPath, body => body.q && body.q === '(foo:[1337 TO 4711])')
                     .reply(200, testResponse);
 
                 dataSource.process(request);
@@ -293,7 +295,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             req = nock(solrUrl)
-                .post(solrIndexPath, _.matches({ q: '(foo:foo)' }))
+                .post(solrIndexPath, body => body.q && body.q === '(foo:foo)')
                 .reply(200, testResponse);
 
             dataSource.process(request);
@@ -313,7 +315,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             req = nock(solrUrl)
-                .post(solrIndexPath, _.matches({ q: 'foo bar AND ((authorId:1337 AND typeId:4711) OR (status:future))' }))
+                .post(solrIndexPath, body => body.q && body.q === 'foo bar AND ((authorId:1337 AND typeId:4711) OR (status:future))')
                 .reply(200, testResponse);
 
             dataSource.process(request);
@@ -340,9 +342,10 @@ describe('Flora SOLR DataSource', () => {
             req = nock(solrUrl)
                 .post(
                     '/solr/awesome_index/select',
-                    _.matches({
-                        q: '((intKey:1337 AND stringKey:\\(foo\\) AND boolKey:1) OR (intKey:4711 AND stringKey:bar\\! AND boolKey:0))'
-                    })
+                    body =>
+                        body.q &&
+                        body.q ===
+                            '((intKey:1337 AND stringKey:\\(foo\\) AND boolKey:1) OR (intKey:4711 AND stringKey:bar\\! AND boolKey:0))'
                 )
                 .reply(200, testResponse);
 
@@ -363,7 +366,7 @@ describe('Flora SOLR DataSource', () => {
                 };
 
                 req = nock(solrUrl)
-                    .post('/solr/article/select', _.matches({ q: supportedFilters[operator] }))
+                    .post('/solr/article/select', body => body.q && body.q === supportedFilters[operator])
                     .reply(200, testResponse);
 
                 dataSource.process(request);
@@ -398,7 +401,10 @@ describe('Flora SOLR DataSource', () => {
             };
 
             req = nock(solrUrl)
-                .post('/solr/awesome_index/select', _.matches({ q: '_val_:"product(assetClassBoost,3)" _val_:"product(importance,50)"' }))
+                .post(
+                    '/solr/awesome_index/select',
+                    body => body.q && body.q === '_val_:"product(assetClassBoost,3)" _val_:"product(importance,50)"'
+                )
                 .reply(200, testResponse);
 
             dataSource.process(request);
@@ -413,7 +419,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             req = nock(solrUrl)
-                .post(solrIndexPath, _.matches({ q: 'fo\\(o\\)bar' }))
+                .post(solrIndexPath, body => body.q && body.q === 'fo\\(o\\)bar')
                 .reply(200, testResponse);
 
             dataSource.process(request);
@@ -427,7 +433,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             req = nock(solrUrl)
-                .post(solrIndexPath, _.matches({ q: 'foo bar AND (authorId:1337)' }))
+                .post(solrIndexPath, body => body.q && body.q === 'foo bar AND (authorId:1337)')
                 .reply(200, testResponse);
 
             dataSource.process(request);
@@ -441,7 +447,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             req = nock(solrUrl)
-                .post(solrIndexPath, _.matches({ q: '(authorId:1337)' }))
+                .post(solrIndexPath, body => body.q && body.q === '(authorId:1337)')
                 .reply(200, testResponse);
 
             dataSource.process(request);
@@ -455,7 +461,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             req = nock(solrUrl)
-                .post(solrIndexPath, _.matches({ q: '(title:"foo bar")' }))
+                .post(solrIndexPath, body => body.q && body.q === '(title:"foo bar")')
                 .reply(200, testResponse);
 
             dataSource.process(request);
@@ -469,7 +475,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             req = nock(solrUrl)
-                .post(solrIndexPath, _.matches({ q: 'nonallowedfield\\:foobar' }))
+                .post(solrIndexPath, body => body.q && body.q === 'nonallowedfield\\:foobar')
                 .reply(200, testResponse);
 
             dataSource.process(request);
@@ -518,7 +524,7 @@ describe('Flora SOLR DataSource', () => {
 
         it('should overwrite SOLR default limit for sub-resource processing', () => {
             req = nock(solrUrl)
-                .post(solrIndexPath, _.matches({ rows: '1000000' }))
+                .post(solrIndexPath, body => body.rows && body.rows === '1000000')
                 .reply(200, testResponse);
 
             // no explicit limit set
