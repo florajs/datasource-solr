@@ -54,6 +54,11 @@ function createRangeFilter(attributeFilters) {
  * @private
  */
 function rangify(filters) {
+    const hasRangeableFilters = filters.some(filter => ['lessOrEqual', 'greaterOrEqual'].includes(filter.operator));
+    if (!hasRangeableFilters) {
+        return filters;
+    }
+
     const groupedAttrs = _.groupBy(filters, 'attribute');
     const rangeQueries = _.filter(groupedAttrs, filterRangeQueries);
 
