@@ -50,7 +50,6 @@
     "pre-commit": "^1.2.2",
     "prettier": "^1.19.1",
     "sinon": "^9.0.0",
-    "sinon-chai": "^3.5.0",
-    "sinon-test": "^2.4.2"
+    "sinon-chai": "^3.5.0"
   }
 }
