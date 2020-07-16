@@ -25,7 +25,7 @@ function filterRangeQueries(filters) {
     const operator1 = filters[0].operator;
     const operator2 = filters[1].operator;
 
-    return rangeOperators.indexOf(operator1) !== -1 && rangeOperators.indexOf(operator2) !== -1;
+    return rangeOperators.includes(operator1) && rangeOperators.includes(operator2);
 }
 
 /**
@@ -67,7 +67,7 @@ function rangify(filters) {
     const rangeQueryAttrs = rangeQueries.map(rangeQuery => rangeQuery[0].attribute);
 
     // copy non-range query attributes
-    return filters.filter(filter => rangeQueryAttrs.indexOf(filter.attribute) === -1).concat(rangeQueries.map(createRangeFilter));
+    return filters.filter(filter => !rangeQueryAttrs.includes(filter.attribute)).concat(rangeQueries.map(createRangeFilter));
 }
 
 /**
@@ -114,7 +114,7 @@ function convertFilterToSolrSyntax(filter) {
     const { operator } = filter;
     let { value } = filter;
 
-    if (SUPPORTED_FILTERS.indexOf(filter.operator) === -1) {
+    if (!SUPPORTED_FILTERS.includes(filter.operator)) {
         throw new ImplementationError(`DataSource "flora-solr" does not support "${operator}" filters`);
     }
 
