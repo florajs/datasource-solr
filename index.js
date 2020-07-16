@@ -39,7 +39,7 @@ function createRangeFilter(attributeFilters) {
     const rangeFilter = { attribute: attributeFilters[0].attribute, operator: 'range' };
 
     // make sure greaterOrEqual filter comes first
-    attributeFilters.sort(filter1 => (filter1.operator === 'greaterOrEqual' ? -1 : 1));
+    attributeFilters.sort(filter => (filter.operator === 'greaterOrEqual' ? -1 : 1));
 
     rangeFilter.value = [attributeFilters[0].value, attributeFilters[1].value];
     return rangeFilter;
