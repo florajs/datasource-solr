@@ -76,8 +76,7 @@ function rangify(filters) {
  * @private
  */
 function escapeSpecialChars(value) {
-    const specialCharRegex = /(\\|\/|\+|-|&|\||!|\(|\)|\{|}|\[|]|\^|"|~|\*|\?|:)/g;
-    return value.replace(specialCharRegex, '\\$1');
+    return value.replace(/([\\/+\-&|!(){}[\]^"~*?:])/g, '\\$1');
 }
 
 /**
@@ -86,8 +85,7 @@ function escapeSpecialChars(value) {
  * @private
  */
 function escapeSpecialCharsSolrSyntax(value) {
-    const specialCharRegex = /(\\|\/|\+|-|&|\||!|\(|\)|\{|}|\[|]|\^|~|\?)/g;
-    return value.replace(specialCharRegex, '\\$1');
+    return value.replace(/([\\/+\-&|!(){}[\]^~?])/g, '\\$1');
 }
 
 /**
