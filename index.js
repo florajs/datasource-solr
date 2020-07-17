@@ -340,7 +340,7 @@ class DataSource {
 
         const requestOpts = {
             connectTimeout: serverOpts[server].connectTimeout || 2000,
-            requestTimeout: serverOpts[server].requestTimeout || 10000,
+            requestTimeout: serverOpts[server].requestTimeout || 5000,
         };
 
         return querySolr(requestUrl, params, requestOpts, this._agent);
