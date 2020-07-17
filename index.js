@@ -39,7 +39,7 @@ function createRangeFilter(attributeFilters) {
     const rangeFilter = { attribute: attributeFilters[0].attribute, operator: 'range' };
 
     // make sure greaterOrEqual filter comes first
-    attributeFilters.sort(filter => (filter.operator === 'greaterOrEqual' ? -1 : 1));
+    attributeFilters.sort((filter) => (filter.operator === 'greaterOrEqual' ? -1 : 1));
 
     rangeFilter.value = [attributeFilters[0].value, attributeFilters[1].value];
     return rangeFilter;
@@ -54,7 +54,7 @@ function createRangeFilter(attributeFilters) {
  * @private
  */
 function rangify(filters) {
-    const hasRangeableFilters = filters.some(filter => ['lessOrEqual', 'greaterOrEqual'].includes(filter.operator));
+    const hasRangeableFilters = filters.some((filter) => ['lessOrEqual', 'greaterOrEqual'].includes(filter.operator));
     if (!hasRangeableFilters) {
         return filters;
     }
@@ -64,10 +64,10 @@ function rangify(filters) {
 
     if (!rangeQueries.length) return filters;
 
-    const rangeQueryAttrs = rangeQueries.map(rangeQuery => rangeQuery[0].attribute);
+    const rangeQueryAttrs = rangeQueries.map((rangeQuery) => rangeQuery[0].attribute);
 
     // copy non-range query attributes
-    return filters.filter(filter => !rangeQueryAttrs.includes(filter.attribute)).concat(rangeQueries.map(createRangeFilter));
+    return filters.filter((filter) => !rangeQueryAttrs.includes(filter.attribute)).concat(rangeQueries.map(createRangeFilter));
 }
 
 /**
@@ -133,7 +133,7 @@ function convertFilterToSolrSyntax(filter) {
 
     // convert composite keys to SOLR syntax
     return value
-        .map(values => {
+        .map((values) => {
             const conditions = values.map((val, index) => filter.attribute[index] + ':' + escapeValueForSolr(val));
             return '(' + conditions.join(' AND ') + ')';
         })
@@ -141,7 +141,7 @@ function convertFilterToSolrSyntax(filter) {
 }
 
 function buildSolrFilterString(floraFilters) {
-    const orConditions = floraFilters.map(andFilters => {
+    const orConditions = floraFilters.map((andFilters) => {
         if (andFilters.length > 1) andFilters = rangify(andFilters);
         const conditions = andFilters.map(convertFilterToSolrSyntax);
         return '(' + conditions.join(' AND ') + ')';
@@ -158,7 +158,7 @@ function buildSolrFilterString(floraFilters) {
  * @private
  */
 function buildSolrOrderString(floraOrders) {
-    return floraOrders.map(order => order.attribute + ' ' + order.direction).join(',');
+    return floraOrders.map((order) => order.attribute + ' ' + order.direction).join(',');
 }
 
 function parseData(str) {
@@ -211,13 +211,13 @@ function querySolr(requestUrl, params, requestOptions, agent) {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             timeout: requestOptions.connectTimeout,
-            agent
+            agent,
         });
 
-        const req = http.request(options, res => {
+        const req = http.request(options, (res) => {
             const chunks = [];
 
-            res.on('data', chunk => chunks.push(chunk));
+            res.on('data', (chunk) => chunks.push(chunk));
 
             res.on('end', () => {
                 const data = parseData(Buffer.concat(chunks).toString('utf8'));
@@ -241,7 +241,7 @@ function querySolr(requestUrl, params, requestOptions, agent) {
 
         req.write(querystring.stringify(params)); // add params to POST body
 
-        req.on('error', err => {
+        req.on('error', (err) => {
             err.message = 'Solr error: ' + err.message + ' (' + options.host + ')';
             reject(err);
         });
@@ -283,7 +283,7 @@ class DataSource {
         this._agent = new http.Agent({
             maxSockets: 5,
             keepAlive: true,
-            keepAliveMsecs: 10000
+            keepAliveMsecs: 10000,
         });
     }
 
@@ -329,7 +329,7 @@ class DataSource {
                 'group.main': 'true',
                 'group.field': request.limitPer,
                 'group.limit': request.limit,
-                rows: NO_LIMIT // disable default limit because groups are returned as list
+                rows: NO_LIMIT, // disable default limit because groups are returned as list
             });
         }
 
@@ -340,7 +340,7 @@ class DataSource {
 
         const requestOpts = {
             connectTimeout: serverOpts[server].connectTimeout || 2000,
-            requestTimeout: serverOpts[server].requestTimeout || 10000
+            requestTimeout: serverOpts[server].requestTimeout || 10000,
         };
 
         return querySolr(requestUrl, params, requestOpts, this._agent);
