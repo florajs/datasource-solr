@@ -223,7 +223,7 @@ function querySolr(requestUrl, params, requestOptions, agent) {
                 const data = parseData(Buffer.concat(chunks).toString('utf8'));
 
                 if (res.statusCode >= 400 || data instanceof Error) {
-                    const error = new Error('Solr error: ' + res.statusCode + ' ' + http.STATUS_CODES[res.statusCode]);
+                    const error = new Error(`Solr error: ${res.statusCode} ${http.STATUS_CODES[res.statusCode]}`);
                     if (data instanceof Error) {
                         error.message += ': ' + data.message;
                     } else if (data && data.error && data.error.msg) {
@@ -242,7 +242,7 @@ function querySolr(requestUrl, params, requestOptions, agent) {
         req.write(querystring.stringify(params)); // add params to POST body
 
         req.on('error', (err) => {
-            err.message = 'Solr error: ' + err.message + ' (' + options.host + ')';
+            err.message = `Solr error: ${err.message} (${options.host})`;
             reject(err);
         });
 
