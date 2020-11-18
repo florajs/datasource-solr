@@ -97,6 +97,7 @@ describe('Flora SOLR DataSource', () => {
                 await dataSource.process({ collection: 'article' });
             } catch (e) {
                 expect(e).to.have.property('message').and.to.contain('500');
+                expect(e).to.have.property('data').and.to.eql({ wt: 'json', rows: 1000000, q: '*:*' });
                 return;
             }
 
@@ -109,7 +110,7 @@ describe('Flora SOLR DataSource', () => {
             try {
                 await dataSource.process({ collection: 'article' });
             } catch (e) {
-                expect(e).to.have.property('message').and.to.contain('Something went wrong');
+                expect(e).to.have.property('message').and.to.contain(`I'm a Teapot`);
                 return;
             }
 
