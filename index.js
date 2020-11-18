@@ -230,7 +230,6 @@ function querySolr(requestUrl, params, requestOptions, agent) {
 
                 if (res.statusCode >= 400 || data instanceof Error) {
                     const error = new Error(`Solr error: ${res.statusCode} ${http.STATUS_CODES[res.statusCode]}`);
-                    error.data = params;
                     return reject(error);
                 }
 
