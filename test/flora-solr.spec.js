@@ -451,6 +451,20 @@ describe('Flora SOLR DataSource', () => {
 
             dataSource.process(request);
         });
+
+        describe('reserved keywords', () => {
+            ['AND', 'NOT', 'OR'].forEach((keyword) => {
+                it(`should lowercase "${keyword}" keyword`, () => {
+                    const request = { collection: 'article', search: keyword };
+
+                    req = nock(solrUrl)
+                        .post(solrIndexPath, (body) => body.q && body.q === `${keyword.toLowerCase()}`)
+                        .reply(200, testResponse);
+
+                    dataSource.process(request);
+                });
+            });
+        });
     });
 
     describe('order', () => {

@@ -76,6 +76,12 @@ function rangify(filters) {
  * @private
  */
 function escapeSpecialChars(value) {
+    const reservedKeywordRegex = /\b(AND|NOT|OR)\b/g;
+
+    if (reservedKeywordRegex.test(value)) {
+        value = value.replace(reservedKeywordRegex, (keyword) => keyword.toLowerCase());
+    }
+
     return value.replace(/([\\/+\-&|!(){}[\]^"~*?:])/g, '\\$1');
 }
 
