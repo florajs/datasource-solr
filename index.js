@@ -1,7 +1,6 @@
 'use strict';
 
 const http = require('http');
-const url = require('url');
 const querystring = require('querystring');
 
 const _ = require('lodash');
@@ -213,14 +212,14 @@ function getUrlGenerators(servers) {
  */
 function querySolr(requestUrl, params, requestOptions, agent) {
     return new Promise((resolve, reject) => {
-        const options = Object.assign(url.parse(requestUrl), {
+        const options = {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             timeout: requestOptions.connectTimeout,
             agent,
-        });
+        };
 
-        const req = http.request(options, (res) => {
+        const req = http.request(requestUrl, options, (res) => {
             const chunks = [];
 
             res.on('data', (chunk) => chunks.push(chunk));
