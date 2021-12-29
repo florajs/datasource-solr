@@ -66,7 +66,9 @@ function rangify(filters) {
     const rangeQueryAttrs = rangeQueries.map((rangeQuery) => rangeQuery[0].attribute);
 
     // copy non-range query attributes
-    return filters.filter((filter) => !rangeQueryAttrs.includes(filter.attribute)).concat(rangeQueries.map(createRangeFilter));
+    return filters
+        .filter((filter) => !rangeQueryAttrs.includes(filter.attribute))
+        .concat(rangeQueries.map(createRangeFilter));
 }
 
 /**
@@ -216,7 +218,7 @@ function querySolr(requestUrl, params, requestOptions, agent) {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             timeout: requestOptions.connectTimeout,
-            agent,
+            agent
         };
 
         const req = http.request(requestUrl, options, (res) => {
@@ -252,7 +254,9 @@ function querySolr(requestUrl, params, requestOptions, agent) {
 function prepareSearchTerm(request) {
     const escapedSearchTerm = escapeValueForSolr(request.search, request.exposeSolrSyntax);
     const allowedSearchFields =
-        request.allowedSearchFields && request.allowedSearchFields.trim() ? request.allowedSearchFields.trim().split(',') : [];
+        request.allowedSearchFields && request.allowedSearchFields.trim()
+            ? request.allowedSearchFields.trim().split(',')
+            : [];
 
     if (!allowedSearchFields.length) {
         return escapedSearchTerm;
@@ -282,7 +286,7 @@ class DataSource {
         this._agent = new http.Agent({
             maxSockets: 5,
             keepAlive: true,
-            keepAliveMsecs: 10000,
+            keepAliveMsecs: 10000
         });
     }
 
@@ -328,7 +332,7 @@ class DataSource {
                 'group.main': 'true',
                 'group.field': request.limitPer,
                 'group.limit': request.limit,
-                rows: NO_LIMIT, // disable default limit because groups are returned as list
+                rows: NO_LIMIT // disable default limit because groups are returned as list
             });
         }
 
@@ -339,7 +343,7 @@ class DataSource {
 
         const requestOpts = {
             connectTimeout: serverOpts[server].connectTimeout || 2000,
-            requestTimeout: serverOpts[server].requestTimeout || 5000,
+            requestTimeout: serverOpts[server].requestTimeout || 5000
         };
 
         return querySolr(requestUrl, params, requestOpts, this._agent);

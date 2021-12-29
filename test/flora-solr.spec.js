@@ -1,5 +1,3 @@
-/* global describe, xdescribe, it, xit, beforeEach, afterEach, after */
-
 'use strict';
 
 const chai = require('chai');
@@ -22,8 +20,8 @@ describe('Flora SOLR DataSource', () => {
     beforeEach(() => {
         dataSource = new FloraSolr(api, {
             servers: {
-                default: { urls: ['http://example.com/solr/'] },
-            },
+                default: { urls: ['http://example.com/solr/'] }
+            }
         });
     });
 
@@ -50,7 +48,10 @@ describe('Flora SOLR DataSource', () => {
     });
 
     it('should set content type to "application/x-www-form-urlencoded"', () => {
-        req = nock(solrUrl).matchHeader('content-type', 'application/x-www-form-urlencoded').post(solrIndexPath).reply(200, testResponse);
+        req = nock(solrUrl)
+            .matchHeader('content-type', 'application/x-www-form-urlencoded')
+            .post(solrIndexPath)
+            .reply(200, testResponse);
         dataSource.process({ collection: 'article' });
     });
 
@@ -73,8 +74,8 @@ describe('Flora SOLR DataSource', () => {
         const ds = new FloraSolr(api, {
             servers: {
                 default: { urls: ['http://article.example.com/solr/'] },
-                other: { urls: ['http://other.example.com/solr/'] },
-            },
+                other: { urls: ['http://other.example.com/solr/'] }
+            }
         });
 
         archiveReq = nock('http://article.example.com').post('/solr/archive/select').reply(200, testResponse);
@@ -120,8 +121,8 @@ describe('Flora SOLR DataSource', () => {
             // nock can't fake request errors at the moment, so we have to make a real request to nonexistent host
             dataSource = new FloraSolr(api, {
                 servers: {
-                    default: { urls: ['http://doesnotexists.localhost/solr/'] },
-                },
+                    default: { urls: ['http://doesnotexists.localhost/solr/'] }
+                }
             });
 
             try {
@@ -168,12 +169,12 @@ describe('Flora SOLR DataSource', () => {
         // test conversion of boolean values
         [
             [false, 0],
-            [true, 1],
+            [true, 1]
         ].forEach(([booleanValue, conversionTarget]) => {
             it('should transform boolean ' + booleanValue + ' value to ' + conversionTarget + '', () => {
                 const request = {
                     collection: 'article',
-                    filter: [[{ attribute: 'foo', operator: 'equal', value: booleanValue }]],
+                    filter: [[{ attribute: 'foo', operator: 'equal', value: booleanValue }]]
                 };
 
                 req = nock(solrUrl)
@@ -187,7 +188,7 @@ describe('Flora SOLR DataSource', () => {
         it('should support arrays', () => {
             const request = {
                 collection: 'article',
-                filter: [[{ attribute: 'foo', operator: 'equal', value: [1, 3, 5, 7] }]],
+                filter: [[{ attribute: 'foo', operator: 'equal', value: [1, 3, 5, 7] }]]
             };
 
             req = nock(solrUrl)
@@ -197,12 +198,32 @@ describe('Flora SOLR DataSource', () => {
             dataSource.process(request);
         });
 
-        const specialChars = ['\\', '/', '+', '-', '&', '|', '!', '(', ')', '{', '}', '[', ']', '^', '"', '~', '*', '?', ':'];
+        const specialChars = [
+            '\\',
+            '/',
+            '+',
+            '-',
+            '&',
+            '|',
+            '!',
+            '(',
+            ')',
+            '{',
+            '}',
+            '[',
+            ']',
+            '^',
+            '"',
+            '~',
+            '*',
+            '?',
+            ':'
+        ];
         specialChars.forEach((character) => {
             it('should escape special character ' + character, () => {
                 const request = {
                     collection: 'article',
-                    filter: [[{ attribute: 'foo', operator: 'equal', value: character + 'bar' }]],
+                    filter: [[{ attribute: 'foo', operator: 'equal', value: character + 'bar' }]]
                 };
 
                 req = nock(solrUrl)
@@ -217,7 +238,7 @@ describe('Flora SOLR DataSource', () => {
             it('should support fixed lower boundaries', () => {
                 const request = {
                     collection: 'article',
-                    filter: [[{ attribute: 'foo', operator: 'greaterOrEqual', value: 1337 }]],
+                    filter: [[{ attribute: 'foo', operator: 'greaterOrEqual', value: 1337 }]]
                 };
 
                 req = nock(solrUrl)
@@ -230,7 +251,7 @@ describe('Flora SOLR DataSource', () => {
             it('should support fixed upper boundaries', () => {
                 const request = {
                     collection: 'article',
-                    filter: [[{ attribute: 'foo', operator: 'lessOrEqual', value: 1337 }]],
+                    filter: [[{ attribute: 'foo', operator: 'lessOrEqual', value: 1337 }]]
                 };
 
                 req = nock(solrUrl)
@@ -246,9 +267,9 @@ describe('Flora SOLR DataSource', () => {
                     filter: [
                         [
                             { attribute: 'foo', operator: 'greaterOrEqual', value: 1337 },
-                            { attribute: 'foo', operator: 'lessOrEqual', value: 4711 },
-                        ],
-                    ],
+                            { attribute: 'foo', operator: 'lessOrEqual', value: 4711 }
+                        ]
+                    ]
                 };
 
                 req = nock(solrUrl)
@@ -262,7 +283,7 @@ describe('Flora SOLR DataSource', () => {
         it('should transform single filters', () => {
             const request = {
                 collection: 'article',
-                filter: [[{ attribute: 'foo', operator: 'equal', value: 'foo' }]],
+                filter: [[{ attribute: 'foo', operator: 'equal', value: 'foo' }]]
             };
 
             req = nock(solrUrl)
@@ -279,14 +300,17 @@ describe('Flora SOLR DataSource', () => {
                 filter: [
                     [
                         { attribute: 'authorId', operator: 'equal', value: 1337 },
-                        { attribute: 'typeId', operator: 'equal', value: 4711 },
+                        { attribute: 'typeId', operator: 'equal', value: 4711 }
                     ],
-                    [{ attribute: 'status', operator: 'equal', value: 'future' }],
-                ],
+                    [{ attribute: 'status', operator: 'equal', value: 'future' }]
+                ]
             };
 
             req = nock(solrUrl)
-                .post(solrIndexPath, (body) => body.q && body.q === 'foo bar AND ((authorId:1337 AND typeId:4711) OR (status:future))')
+                .post(
+                    solrIndexPath,
+                    (body) => body.q && body.q === 'foo bar AND ((authorId:1337 AND typeId:4711) OR (status:future))'
+                )
                 .reply(200, testResponse);
 
             dataSource.process(request);
@@ -303,11 +327,11 @@ describe('Flora SOLR DataSource', () => {
                             // test string escaping and boolean conversion
                             value: [
                                 [1337, '(foo)', true],
-                                [4711, 'bar!', false],
-                            ],
-                        },
-                    ],
-                ],
+                                [4711, 'bar!', false]
+                            ]
+                        }
+                    ]
+                ]
             };
 
             req = nock(solrUrl)
@@ -327,13 +351,13 @@ describe('Flora SOLR DataSource', () => {
             equal: '(date:2015\\-12\\-31)',
             greaterOrEqual: '(date:[2015\\-12\\-31 TO *])',
             lessOrEqual: '(date:[* TO 2015\\-12\\-31])',
-            notEqual: '(-date:2015\\-12\\-31)',
+            notEqual: '(-date:2015\\-12\\-31)'
         };
         Object.keys(supportedFilters).forEach((operator) => {
             it('should support "' + operator + '" filters', () => {
                 const request = {
                     collection: 'article',
-                    filter: [[{ attribute: 'date', operator: operator, value: '2015-12-31' }]],
+                    filter: [[{ attribute: 'date', operator: operator, value: '2015-12-31' }]]
                 };
 
                 req = nock(solrUrl)
@@ -348,7 +372,7 @@ describe('Flora SOLR DataSource', () => {
             it('should trigger an error for unsupported filter operator "' + operator + '"', async () => {
                 const request = {
                     collection: 'article',
-                    filter: [[{ attribute: 'date', operator: operator, value: '2015-12-31' }]],
+                    filter: [[{ attribute: 'date', operator: operator, value: '2015-12-31' }]]
                 };
 
                 try {
@@ -368,7 +392,7 @@ describe('Flora SOLR DataSource', () => {
         it('should append additional query parameters', () => {
             const request = {
                 collection: 'awesome_index',
-                queryAddition: '_val_:"product(assetClassBoost,3)"\n_val_:"product(importance,50)"',
+                queryAddition: '_val_:"product(assetClassBoost,3)"\n_val_:"product(importance,50)"'
             };
 
             req = nock(solrUrl)
@@ -386,7 +410,7 @@ describe('Flora SOLR DataSource', () => {
         it('should add search term to query', () => {
             const request = {
                 collection: 'article',
-                search: 'fo(o)bar',
+                search: 'fo(o)bar'
             };
 
             req = nock(solrUrl)
@@ -400,7 +424,7 @@ describe('Flora SOLR DataSource', () => {
             const request = {
                 collection: 'article',
                 search: 'foo bar',
-                filter: [[{ attribute: 'authorId', operator: 'equal', value: 1337 }]],
+                filter: [[{ attribute: 'authorId', operator: 'equal', value: 1337 }]]
             };
 
             req = nock(solrUrl)
@@ -414,7 +438,7 @@ describe('Flora SOLR DataSource', () => {
             const request = {
                 collection: 'article',
                 search: ' ',
-                filter: [[{ attribute: 'authorId', operator: 'equal', value: 1337 }]],
+                filter: [[{ attribute: 'authorId', operator: 'equal', value: 1337 }]]
             };
 
             req = nock(solrUrl)
@@ -428,7 +452,7 @@ describe('Flora SOLR DataSource', () => {
             const request = {
                 collection: 'article',
                 search: 'title:foo bar',
-                allowedSearchFields: 'title',
+                allowedSearchFields: 'title'
             };
 
             req = nock(solrUrl)
@@ -442,7 +466,7 @@ describe('Flora SOLR DataSource', () => {
             const request = {
                 collection: 'article',
                 search: 'nonallowedfield:foobar',
-                allowedSearchFields: 'title',
+                allowedSearchFields: 'title'
             };
 
             req = nock(solrUrl)
@@ -471,7 +495,7 @@ describe('Flora SOLR DataSource', () => {
         it('single criterion', () => {
             const request = {
                 collection: 'article',
-                order: [{ attribute: 'foo', direction: 'asc' }],
+                order: [{ attribute: 'foo', direction: 'asc' }]
             };
 
             req = nock(solrUrl)
@@ -486,8 +510,8 @@ describe('Flora SOLR DataSource', () => {
                 collection: 'article',
                 order: [
                     { attribute: 'foo', direction: 'asc' },
-                    { attribute: 'bar', direction: 'desc' },
-                ],
+                    { attribute: 'bar', direction: 'desc' }
+                ]
             };
 
             req = nock(solrUrl)
@@ -577,9 +601,9 @@ describe('Flora SOLR DataSource', () => {
                     servers: {
                         default: {
                             urls: ['http://example.com/solr/'],
-                            connectTimeout: 100,
-                        },
-                    },
+                            connectTimeout: 100
+                        }
+                    }
                 });
 
                 req = nock(solrUrl).post(solrIndexPath).delayConnection(200).reply(200, testResponse);
@@ -599,9 +623,9 @@ describe('Flora SOLR DataSource', () => {
                     servers: {
                         default: {
                             urls: ['http://example.com/solr/'],
-                            requestTimeout: 100,
-                        },
-                    },
+                            requestTimeout: 100
+                        }
+                    }
                 });
 
                 req = nock(solrUrl).post(solrIndexPath).delayBody(200).reply(200, testResponse);
@@ -659,7 +683,7 @@ describe('Flora SOLR DataSource', () => {
             dataSource.process({
                 collection: 'article',
                 limitPer: 'seriesId',
-                order: [{ attribute: 'date', direction: 'desc' }],
+                order: [{ attribute: 'date', direction: 'desc' }]
             });
         });
     });
