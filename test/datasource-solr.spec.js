@@ -6,7 +6,7 @@ const nock = require('nock');
 
 const FloraSolr = require('../index');
 
-const { ImplementationError } = require('flora-errors');
+const { ImplementationError } = require('@florajs/errors');
 
 describe('Flora SOLR DataSource', () => {
     const solrUrl = 'http://example.com';

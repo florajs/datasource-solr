@@ -4,7 +4,7 @@ const http = require('http');
 const querystring = require('querystring');
 
 const _ = require('lodash');
-const { ImplementationError } = require('flora-errors');
+const { ImplementationError } = require('@florajs/errors');
 
 const SUPPORTED_FILTERS = ['equal', 'notEqual', 'lessOrEqual', 'greaterOrEqual', 'range'];
 
@@ -120,7 +120,7 @@ function convertFilterToSolrSyntax(filter) {
     let { value } = filter;
 
     if (!SUPPORTED_FILTERS.includes(filter.operator)) {
-        throw new ImplementationError(`DataSource "flora-solr" does not support "${operator}" filters`);
+        throw new ImplementationError(`DataSource "solr" does not support "${operator}" filters`);
     }
 
     if (!Array.isArray(filter.attribute)) {
