@@ -15,9 +15,9 @@
     "name": "BörseGo AG",
     "email": "it@boerse-go.de"
   },
-  "homepage": "https://github.com/godmodelabs/flora-solr",
+  "homepage": "https://github.com/florajs/datasource-solr",
   "license": "MIT",
-  "repository": "godmodelabs/flora-solr",
+  "repository": "florajs/datasource-solr",
   "contributors": [
     {
       "name": "Marco Baumgartl",
