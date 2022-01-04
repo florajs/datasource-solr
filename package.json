@@ -1,6 +1,6 @@
 {
   "name": "@florajs/datasource-solr",
-  "version": "2.2.2",
+  "version": "3.0.0",
   "description": "Solr connection for Flora",
   "main": "index.js",
   "scripts": {
