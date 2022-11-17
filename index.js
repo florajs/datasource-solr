@@ -238,13 +238,15 @@ function querySolr(requestUrl, params, requestOptions, agent) {
             });
         });
 
-        req.setTimeout(requestOptions.requestTimeout, () => req.abort());
-
         req.write(querystring.stringify(params)); // add params to POST body
 
         req.on('error', (err) => {
             err.message = `Solr error: ${err.message} (${options.host})`;
             reject(err);
+        });
+        req.on('timeout', () => {
+            req.destroy();
+            reject(new Error('Request timed out'));
         });
 
         req.end();
