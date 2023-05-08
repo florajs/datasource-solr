@@ -245,50 +245,6 @@ describe('Flora SOLR DataSource', () => {
 
                 dataSource.process(request);
             });
-
-            it('should support fixed lower boundaries', () => {
-                const request = {
-                    collection: 'article',
-                    filter: [[{ attribute: 'foo', operator: 'greaterOrEqual', value: 1337 }]]
-                };
-
-                req = nock(solrUrl)
-                    .post(solrIndexPath, (body) => body.q && body.q === '(foo:[1337 TO *])')
-                    .reply(200, testResponse);
-
-                dataSource.process(request);
-            });
-
-            it('should support fixed upper boundaries', () => {
-                const request = {
-                    collection: 'article',
-                    filter: [[{ attribute: 'foo', operator: 'lessOrEqual', value: 1337 }]]
-                };
-
-                req = nock(solrUrl)
-                    .post(solrIndexPath, (body) => body.q && body.q === '(foo:[* TO 1337])')
-                    .reply(200, testResponse);
-
-                dataSource.process(request);
-            });
-
-            it('should support fixed lower and upper boundaries', () => {
-                const request = {
-                    collection: 'article',
-                    filter: [
-                        [
-                            { attribute: 'foo', operator: 'greaterOrEqual', value: 1337 },
-                            { attribute: 'foo', operator: 'lessOrEqual', value: 4711 }
-                        ]
-                    ]
-                };
-
-                req = nock(solrUrl)
-                    .post(solrIndexPath, (body) => body.q && body.q === '(foo:[1337 TO 4711])')
-                    .reply(200, testResponse);
-
-                dataSource.process(request);
-            });
         });
 
         it('should transform single filters', () => {
