@@ -6,7 +6,7 @@ const querystring = require('querystring');
 const _ = require('lodash');
 const { ImplementationError } = require('@florajs/errors');
 
-const SUPPORTED_FILTERS = ['equal', 'notEqual', 'lessOrEqual', 'greaterOrEqual', 'range'];
+const SUPPORTED_FILTERS = ['equal', 'notEqual', 'lessOrEqual', 'greater', 'greaterOrEqual', 'range'];
 
 const NO_LIMIT = 1000000;
 
@@ -131,6 +131,7 @@ function convertFilterToSolrSyntax(filter) {
         }
 
         if (operator !== 'notEqual') {
+            if (operator === 'greater') value = '{' + value + ' TO *]';
             if (operator === 'greaterOrEqual') value = '[' + value + ' TO *]';
             if (operator === 'lessOrEqual') value = '[* TO ' + value + ']';
             return filter.attribute + ':' + value;

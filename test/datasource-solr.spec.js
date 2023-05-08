@@ -349,6 +349,7 @@ describe('Flora SOLR DataSource', () => {
 
         const supportedFilters = {
             equal: '(date:2015\\-12\\-31)',
+            greater: '(date:{2015\\-12\\-31 TO *])',
             greaterOrEqual: '(date:[2015\\-12\\-31 TO *])',
             lessOrEqual: '(date:[* TO 2015\\-12\\-31])',
             notEqual: '(-date:2015\\-12\\-31)'
@@ -368,7 +369,7 @@ describe('Flora SOLR DataSource', () => {
             });
         });
 
-        ['less', 'greater'].forEach((operator) => {
+        ['less'].forEach((operator) => {
             it('should trigger an error for unsupported filter operator "' + operator + '"', async () => {
                 const request = {
                     collection: 'article',
