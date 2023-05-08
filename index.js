@@ -7,6 +7,12 @@ const _ = require('lodash');
 const { ImplementationError } = require('@florajs/errors');
 
 const SUPPORTED_FILTERS = ['equal', 'notEqual', 'less', 'lessOrEqual', 'greater', 'greaterOrEqual', 'range'];
+const RANGE_OPERATOR_FILTER_MAPPING = {
+    less: '}',
+    lessOrEqual: ']',
+    greater: '{',
+    greaterOrEqual: '['
+};
 
 const NO_LIMIT = 1000000;
 
@@ -20,7 +26,7 @@ const NO_LIMIT = 1000000;
 function filterRangeQueries(filters) {
     if (filters.length !== 2) return false;
 
-    const rangeOperators = ['lessOrEqual', 'greaterOrEqual'];
+    const rangeOperators = ['less', 'lessOrEqual', 'greater', 'greaterOrEqual'];
     const operator1 = filters[0].operator;
     const operator2 = filters[1].operator;
 
@@ -35,13 +41,16 @@ function filterRangeQueries(filters) {
  * @private
  */
 function createRangeFilter(attributeFilters) {
-    const rangeFilter = { attribute: attributeFilters[0].attribute, operator: 'range' };
-
     // make sure greaterOrEqual filter comes first
     attributeFilters.sort((filter) => (filter.operator === 'greaterOrEqual' ? -1 : 1));
 
-    rangeFilter.value = [attributeFilters[0].value, attributeFilters[1].value];
-    return rangeFilter;
+    return {
+        attribute: attributeFilters[0].attribute,
+        operator: 'range',
+        lowerSolrRangeOperator: RANGE_OPERATOR_FILTER_MAPPING[attributeFilters[0].operator],
+        upperSolrRangeOperator: RANGE_OPERATOR_FILTER_MAPPING[attributeFilters[1].operator],
+        value: [attributeFilters[0].value, attributeFilters[1].value]
+    };
 }
 
 /**
@@ -53,7 +62,10 @@ function createRangeFilter(attributeFilters) {
  * @private
  */
 function rangify(filters) {
-    const hasRangeableFilters = filters.some((filter) => ['lessOrEqual', 'greaterOrEqual'].includes(filter.operator));
+    const hasRangeableFilters = filters.some((filter) =>
+        ['less', 'lessOrEqual', 'greater', 'greaterOrEqual'].includes(filter.operator)
+    );
+
     if (!hasRangeableFilters) {
         return filters;
     }
@@ -126,8 +138,13 @@ function convertFilterToSolrSyntax(filter) {
     if (!Array.isArray(filter.attribute)) {
         value = escapeValueForSolr(value);
         if (Array.isArray(value)) {
-            if (operator === 'range') value = '[' + value[0] + ' TO ' + value[1] + ']';
-            else value = '(' + value.join(' OR ') + ')';
+            const lowerSolrRangeOperator = filter.lowerSolrRangeOperator || '[';
+            const upperSolrRangeOperator = filter.upperSolrRangeOperator || ']';
+
+            value =
+                operator === 'range'
+                    ? lowerSolrRangeOperator + value[0] + ' TO ' + value[1] + upperSolrRangeOperator
+                    : '(' + value.join(' OR ') + ')';
         }
 
         if (operator !== 'notEqual') {

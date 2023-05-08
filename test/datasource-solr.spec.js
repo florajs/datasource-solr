@@ -233,17 +233,40 @@ describe('Flora SOLR DataSource', () => {
         });
 
         describe('range queries', () => {
-            it('should support range operator', () => {
-                const request = {
-                    collection: 'article',
-                    filter: [[{ attribute: 'foo', operator: 'range', value: [1, 3] }]]
-                };
+            [
+                {
+                    description: 'should support range operator',
+                    floraFilter: [[{ attribute: 'foo', operator: 'range', value: [1, 3] }]],
+                    solrFilter: '(foo:[1 TO 3])'
+                },
+                {
+                    description: 'should combine multiple AND-filters to same attribute w/ range operator',
+                    floraFilter: [
+                        [
+                            { attribute: 'foo', operator: 'greater', value: 1 },
+                            { attribute: 'foo', operator: 'lessOrEqual', value: 3 }
+                        ]
+                    ],
+                    solrFilter: '(foo:{1 TO 3])'
+                },
+                {
+                    description: 'should NOT combine multiple OR-filters to same attribute w/ range operator',
+                    floraFilter: [
+                        [{ attribute: 'foo', operator: 'greater', value: 1 }],
+                        [{ attribute: 'foo', operator: 'less', value: 3 }]
+                    ],
+                    solrFilter: '((foo:{1 TO *]) OR (foo:[* TO 3}))'
+                }
+            ].forEach(({ description, floraFilter, solrFilter }) => {
+                it(description, () => {
+                    const request = { collection: 'article', filter: floraFilter };
 
-                req = nock(solrUrl)
-                    .post(solrIndexPath, (body) => body.q && body.q === '(foo:[1 TO 3])')
-                    .reply(200, testResponse);
+                    req = nock(solrUrl)
+                        .post(solrIndexPath, (body) => body.q && body.q === solrFilter)
+                        .reply(200, testResponse);
 
-                dataSource.process(request);
+                    dataSource.process(request);
+                });
             });
         });
 
