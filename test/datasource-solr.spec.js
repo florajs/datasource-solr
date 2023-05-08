@@ -67,8 +67,7 @@ describe('Flora SOLR DataSource', () => {
         dataSource.process({ collection: 'article' });
     });
 
-    it('should support multiple servers', async () => {
-        let archiveReq, awesomeReq, requests;
+    it('should support multiple servers', () => {
         const floraRequests = [{ collection: 'archive' }, { server: 'other', collection: 'awesome-index' }];
         const ds = new FloraSolr(api, {
             servers: {
@@ -77,16 +76,10 @@ describe('Flora SOLR DataSource', () => {
             }
         });
 
-        archiveReq = nock('http://article.example.com').post('/solr/archive/select').reply(200, testResponse);
-        awesomeReq = nock('http://other.example.com').post('/solr/awesome-index/select').reply(200, testResponse);
+        nock('http://article.example.com').post('/solr/archive/select').reply(200, testResponse);
+        nock('http://other.example.com').post('/solr/awesome-index/select').reply(200, testResponse);
 
-        requests = floraRequests.map((request) => ds.process(request));
-        await Promise.all(requests);
-
-        // make sure requests are triggered
-        // nock requests trigger an exception when done() is called and request to url was not triggered
-        archiveReq.done();
-        awesomeReq.done();
+        return Promise.all(floraRequests.map((request) => ds.process(request)));
     });
 
     describe('error handling', () => {
