@@ -6,8 +6,6 @@ const nock = require('nock');
 
 const FloraSolr = require('../index');
 
-const { ImplementationError } = require('@florajs/errors');
-
 describe('Flora SOLR DataSource', () => {
     const solrUrl = 'http://example.com';
     const solrIndexPath = '/solr/article/select';
@@ -351,6 +349,7 @@ describe('Flora SOLR DataSource', () => {
             equal: '(date:2015\\-12\\-31)',
             greater: '(date:{2015\\-12\\-31 TO *])',
             greaterOrEqual: '(date:[2015\\-12\\-31 TO *])',
+            less: '(date:[* TO 2015\\-12\\-31})',
             lessOrEqual: '(date:[* TO 2015\\-12\\-31])',
             notEqual: '(-date:2015\\-12\\-31)'
         };
@@ -366,27 +365,6 @@ describe('Flora SOLR DataSource', () => {
                     .reply(200, testResponse);
 
                 dataSource.process(request);
-            });
-        });
-
-        ['less'].forEach((operator) => {
-            it('should trigger an error for unsupported filter operator "' + operator + '"', async () => {
-                const request = {
-                    collection: 'article',
-                    filter: [[{ attribute: 'date', operator: operator, value: '2015-12-31' }]]
-                };
-
-                try {
-                    await dataSource.process(request);
-                } catch (e) {
-                    expect(e)
-                        .to.be.instanceOf(ImplementationError)
-                        .and.to.have.property('message')
-                        .and.to.contain('not support "' + operator + '" filters');
-                    return;
-                }
-
-                throw new Error('Expected request to fail');
             });
         });
 
