@@ -233,6 +233,19 @@ describe('Flora SOLR DataSource', () => {
         });
 
         describe('range queries', () => {
+            it('should support range operator', () => {
+                const request = {
+                    collection: 'article',
+                    filter: [[{ attribute: 'foo', operator: 'range', value: [1, 3] }]]
+                };
+
+                req = nock(solrUrl)
+                    .post(solrIndexPath, (body) => body.q && body.q === '(foo:[1 TO 3])')
+                    .reply(200, testResponse);
+
+                dataSource.process(request);
+            });
+
             it('should support fixed lower boundaries', () => {
                 const request = {
                     collection: 'article',
