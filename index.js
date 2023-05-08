@@ -3,7 +3,6 @@
 const http = require('http');
 const querystring = require('querystring');
 
-const _ = require('lodash');
 const { ImplementationError } = require('@florajs/errors');
 
 const SUPPORTED_FILTERS = ['equal', 'notEqual', 'less', 'lessOrEqual', 'greater', 'greaterOrEqual', 'range'];
@@ -15,23 +14,6 @@ const RANGE_OPERATOR_FILTER_MAPPING = {
 };
 
 const NO_LIMIT = 1000000;
-
-/**
- * Return true if two filters on same attribute can be used as single range filter.
- *
- * @param {Array.<Object>} filters
- * @return {boolean}
- * @private
- */
-function filterRangeQueries(filters) {
-    if (filters.length !== 2) return false;
-
-    const rangeOperators = ['less', 'lessOrEqual', 'greater', 'greaterOrEqual'];
-    const operator1 = filters[0].operator;
-    const operator2 = filters[1].operator;
-
-    return rangeOperators.includes(operator1) && rangeOperators.includes(operator2);
-}
 
 /**
  * Create range filter from a greatOrEqual and lessOrEqual filter.
@@ -70,8 +52,20 @@ function rangify(filters) {
         return filters;
     }
 
-    const groupedAttrs = _.groupBy(filters, 'attribute');
-    const rangeQueries = _.filter(groupedAttrs, filterRangeQueries);
+    const groupedAttrs = filters.reduce((acc, filter) => {
+        acc[filter.attribute] = acc[filter.attribute] || [];
+        acc[filter.attribute].push(filter);
+        return acc;
+    }, {});
+    const rangeQueries = Object.values(groupedAttrs).filter((filters) => {
+        if (filters.length !== 2) return false;
+
+        const rangeOperators = ['less', 'lessOrEqual', 'greater', 'greaterOrEqual'];
+        const operator1 = filters[0].operator;
+        const operator2 = filters[1].operator;
+
+        return rangeOperators.includes(operator1) && rangeOperators.includes(operator2);
+    });
 
     if (!rangeQueries.length) return filters;
 
