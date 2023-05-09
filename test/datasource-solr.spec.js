@@ -331,15 +331,14 @@ describe('Flora SOLR DataSource', () => {
             dataSource.process(request);
         });
 
-        const supportedFilters = {
+        Object.entries({
             equal: '(date:2015\\-12\\-31)',
             greater: '(date:{2015\\-12\\-31 TO *])',
             greaterOrEqual: '(date:[2015\\-12\\-31 TO *])',
             less: '(date:[* TO 2015\\-12\\-31})',
             lessOrEqual: '(date:[* TO 2015\\-12\\-31])',
             notEqual: '(-date:2015\\-12\\-31)'
-        };
-        Object.keys(supportedFilters).forEach((operator) => {
+        }).forEach(([operator, solrFilter]) => {
             it('should support "' + operator + '" filters', () => {
                 const request = {
                     collection: 'article',
@@ -347,7 +346,7 @@ describe('Flora SOLR DataSource', () => {
                 };
 
                 nock(solrUrl)
-                    .post('/solr/article/select', (body) => body.q && body.q === supportedFilters[operator])
+                    .post('/solr/article/select', (body) => body.q && body.q === solrFilter)
                     .reply(200, testResponse);
 
                 dataSource.process(request);
