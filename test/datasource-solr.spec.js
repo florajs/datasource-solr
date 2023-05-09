@@ -190,41 +190,22 @@ describe('Flora SOLR DataSource', () => {
             dataSource.process(request);
         });
 
-        const specialChars = [
-            '\\',
-            '/',
-            '+',
-            '-',
-            '&',
-            '|',
-            '!',
-            '(',
-            ')',
-            '{',
-            '}',
-            '[',
-            ']',
-            '^',
-            '"',
-            '~',
-            '*',
-            '?',
-            ':'
-        ];
-        specialChars.forEach((character) => {
-            it('should escape special character ' + character, () => {
-                const request = {
-                    collection: 'article',
-                    filter: [[{ attribute: 'foo', operator: 'equal', value: character + 'bar' }]]
-                };
+        ['\\', '/', '+', '-', '&', '|', '!', '(', ')', '{', '}', '[', ']', '^', '"', '~', '*', '?', ':'].forEach(
+            (character) => {
+                it('should escape special character ' + character, () => {
+                    const request = {
+                        collection: 'article',
+                        filter: [[{ attribute: 'foo', operator: 'equal', value: character + 'bar' }]]
+                    };
 
-                nock(solrUrl)
-                    .post(solrIndexPath, (body) => body?.q === `(foo:\\${character}bar)`)
-                    .reply(200, testResponse);
+                    nock(solrUrl)
+                        .post(solrIndexPath, (body) => body?.q === `(foo:\\${character}bar)`)
+                        .reply(200, testResponse);
 
-                dataSource.process(request);
-            });
-        });
+                    dataSource.process(request);
+                });
+            }
+        );
 
         describe('range queries', () => {
             [
