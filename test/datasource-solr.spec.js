@@ -152,7 +152,7 @@ describe('Flora SOLR DataSource', () => {
     describe('filters', () => {
         it('should send "*:*" if no filter is set', () => {
             nock(solrUrl)
-                .post(solrIndexPath, (body) => body.q && body.q === '*:*')
+                .post(solrIndexPath, (body) => body?.q === '*:*')
                 .reply(200, testResponse);
 
             dataSource.process({ collection: 'article' });
@@ -170,7 +170,7 @@ describe('Flora SOLR DataSource', () => {
                 };
 
                 nock(solrUrl)
-                    .post(solrIndexPath, (body) => body.q && body.q === `(foo:${conversionTarget})`)
+                    .post(solrIndexPath, (body) => body?.q === `(foo:${conversionTarget})`)
                     .reply(200, testResponse);
 
                 dataSource.process(request);
@@ -184,7 +184,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             nock(solrUrl)
-                .post(solrIndexPath, (body) => body.q && body.q === '(foo:(1 OR 3 OR 5 OR 7))')
+                .post(solrIndexPath, (body) => body?.q === '(foo:(1 OR 3 OR 5 OR 7))')
                 .reply(200, testResponse);
 
             dataSource.process(request);
@@ -219,7 +219,7 @@ describe('Flora SOLR DataSource', () => {
                 };
 
                 nock(solrUrl)
-                    .post(solrIndexPath, (body) => body.q && body.q === `(foo:\\${character}bar)`)
+                    .post(solrIndexPath, (body) => body?.q === `(foo:\\${character}bar)`)
                     .reply(200, testResponse);
 
                 dataSource.process(request);
@@ -256,7 +256,7 @@ describe('Flora SOLR DataSource', () => {
                     const request = { collection: 'article', filter: floraFilter };
 
                     nock(solrUrl)
-                        .post(solrIndexPath, (body) => body.q && body.q === solrFilter)
+                        .post(solrIndexPath, (body) => body?.q === solrFilter)
                         .reply(200, testResponse);
 
                     dataSource.process(request);
@@ -271,7 +271,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             nock(solrUrl)
-                .post(solrIndexPath, (body) => body.q && body.q === '(foo:foo)')
+                .post(solrIndexPath, (body) => body?.q === '(foo:foo)')
                 .reply(200, testResponse);
 
             dataSource.process(request);
@@ -293,7 +293,7 @@ describe('Flora SOLR DataSource', () => {
             nock(solrUrl)
                 .post(
                     solrIndexPath,
-                    (body) => body.q && body.q === 'foo bar AND ((authorId:1337 AND typeId:4711) OR (status:future))'
+                    (body) => body?.q === 'foo bar AND ((authorId:1337 AND typeId:4711) OR (status:future))'
                 )
                 .reply(200, testResponse);
 
@@ -322,9 +322,8 @@ describe('Flora SOLR DataSource', () => {
                 .post(
                     '/solr/awesome_index/select',
                     (body) =>
-                        body.q &&
-                        body.q ===
-                            '((intKey:1337 AND stringKey:\\(foo\\) AND boolKey:1) OR (intKey:4711 AND stringKey:bar\\! AND boolKey:0))'
+                        body?.q ===
+                        '((intKey:1337 AND stringKey:\\(foo\\) AND boolKey:1) OR (intKey:4711 AND stringKey:bar\\! AND boolKey:0))'
                 )
                 .reply(200, testResponse);
 
@@ -346,7 +345,7 @@ describe('Flora SOLR DataSource', () => {
                 };
 
                 nock(solrUrl)
-                    .post('/solr/article/select', (body) => body.q && body.q === solrFilter)
+                    .post('/solr/article/select', (body) => body?.q === solrFilter)
                     .reply(200, testResponse);
 
                 dataSource.process(request);
@@ -362,7 +361,7 @@ describe('Flora SOLR DataSource', () => {
             nock(solrUrl)
                 .post(
                     '/solr/awesome_index/select',
-                    (body) => body.q && body.q === '_val_:"product(assetClassBoost,3)" _val_:"product(importance,50)"'
+                    (body) => body?.q === '_val_:"product(assetClassBoost,3)" _val_:"product(importance,50)"'
                 )
                 .reply(200, testResponse);
 
@@ -378,7 +377,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             nock(solrUrl)
-                .post(solrIndexPath, (body) => body.q && body.q === 'fo\\(o\\)bar')
+                .post(solrIndexPath, (body) => body?.q === 'fo\\(o\\)bar')
                 .reply(200, testResponse);
 
             dataSource.process(request);
@@ -392,7 +391,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             nock(solrUrl)
-                .post(solrIndexPath, (body) => body.q && body.q === 'foo bar AND (authorId:1337)')
+                .post(solrIndexPath, (body) => body?.q === 'foo bar AND (authorId:1337)')
                 .reply(200, testResponse);
 
             dataSource.process(request);
@@ -406,7 +405,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             nock(solrUrl)
-                .post(solrIndexPath, (body) => body.q && body.q === '(authorId:1337)')
+                .post(solrIndexPath, (body) => body?.q === '(authorId:1337)')
                 .reply(200, testResponse);
 
             dataSource.process(request);
@@ -420,7 +419,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             nock(solrUrl)
-                .post(solrIndexPath, (body) => body.q && body.q === '(title:"foo bar")')
+                .post(solrIndexPath, (body) => body?.q === '(title:"foo bar")')
                 .reply(200, testResponse);
 
             dataSource.process(request);
@@ -434,7 +433,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             nock(solrUrl)
-                .post(solrIndexPath, (body) => body.q && body.q === 'nonallowedfield\\:foobar')
+                .post(solrIndexPath, (body) => body?.q === 'nonallowedfield\\:foobar')
                 .reply(200, testResponse);
 
             dataSource.process(request);
@@ -446,7 +445,7 @@ describe('Flora SOLR DataSource', () => {
                     const request = { collection: 'article', search: keyword };
 
                     nock(solrUrl)
-                        .post(solrIndexPath, (body) => body.q && body.q === `${keyword.toLowerCase()}`)
+                        .post(solrIndexPath, (body) => body?.q === `${keyword.toLowerCase()}`)
                         .reply(200, testResponse);
 
                     dataSource.process(request);
