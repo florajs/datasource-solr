@@ -231,6 +231,26 @@ describe('Flora SOLR DataSource', () => {
                         [{ attribute: 'foo', operator: 'less', value: 3 }]
                     ],
                     solrFilter: '((foo:{1 TO *]) OR (foo:[* TO 3}))'
+                },
+                {
+                    description: 'should sort filters by "greater" operator',
+                    floraFilter: [
+                        [
+                            { attribute: 'foo', operator: 'less', value: 3 },
+                            { attribute: 'foo', operator: 'greater', value: 1 }
+                        ]
+                    ],
+                    solrFilter: '(foo:{1 TO 3})'
+                },
+                {
+                    description: 'should sort filters by "greaterOrEqual" operator',
+                    floraFilter: [
+                        [
+                            { attribute: 'foo', operator: 'less', value: 3 },
+                            { attribute: 'foo', operator: 'greaterOrEqual', value: 1 }
+                        ]
+                    ],
+                    solrFilter: '(foo:[1 TO 3})'
                 }
             ].forEach(({ description, floraFilter, solrFilter }) => {
                 it(description, () => {

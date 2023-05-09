@@ -24,7 +24,7 @@ const NO_LIMIT = 1000000;
  */
 function createRangeFilter(attributeFilters) {
     // make sure greaterOrEqual filter comes first
-    attributeFilters.sort((filter) => (filter.operator === 'greaterOrEqual' ? -1 : 1));
+    attributeFilters.sort((filter) => (['greater', 'greaterOrEqual'].includes(filter.operator) ? -1 : 1));
 
     return {
         attribute: attributeFilters[0].attribute,
