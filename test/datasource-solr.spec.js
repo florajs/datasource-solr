@@ -268,7 +268,7 @@ describe('Flora SOLR DataSource', () => {
                 ['lessOrEqual', 'less', '(foo:[* TO 1] AND foo:[* TO 3})'],
                 ['greater', 'greaterOrEqual', '(foo:{1 TO *] AND foo:[3 TO *])']
             ].forEach(([operator1, operator2, solrFilter]) => {
-                it('should create range filters for same operator types', async () => {
+                it('should not create range filters for same operator types', async () => {
                     const request = {
                         collection: 'article',
                         filter: [
