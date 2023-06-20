@@ -64,7 +64,11 @@ function rangify(filters) {
         const operator1 = filters[0].operator;
         const operator2 = filters[1].operator;
 
-        return rangeOperators.includes(operator1) && rangeOperators.includes(operator2);
+        return (
+            rangeOperators.includes(operator1) &&
+            rangeOperators.includes(operator2) &&
+            operator1.substring(0, 4) !== operator2.substring(0, 4)
+        );
     });
 
     if (!rangeQueries.length) return filters;

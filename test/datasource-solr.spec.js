@@ -263,6 +263,29 @@ describe('Flora SOLR DataSource', () => {
                     dataSource.process(request);
                 });
             });
+
+            [
+                ['lessOrEqual', 'less', '(foo:[* TO 1] AND foo:[* TO 3})'],
+                ['greater', 'greaterOrEqual', '(foo:{1 TO *] AND foo:[3 TO *])']
+            ].forEach(([operator1, operator2, solrFilter]) => {
+                it('should create range filters for same operator types', async () => {
+                    const request = {
+                        collection: 'article',
+                        filter: [
+                            [
+                                { attribute: 'foo', operator: operator1, value: 1 },
+                                { attribute: 'foo', operator: operator2, value: 3 }
+                            ]
+                        ]
+                    };
+
+                    nock(solrUrl)
+                        .post(solrIndexPath, (body) => body?.q === solrFilter)
+                        .reply(200, testResponse);
+
+                    dataSource.process(request);
+                });
+            });
         });
 
         it('should transform single filters', () => {
