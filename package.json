@@ -40,7 +40,7 @@
     "node": ">=16"
   },
   "dependencies": {
-    "@florajs/errors": "^3.0.0"
+    "@florajs/errors": "^4.0.0"
   },
   "devDependencies": {
     "@types/chai": "^4.3.5",
