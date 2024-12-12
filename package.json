@@ -4,13 +4,13 @@
   "description": "Solr connection for Flora",
   "main": "index.js",
   "scripts": {
+    "prepare": "git config --local core.hooksPath .githooks",
     "test": "eslint . && node --test test/*.spec.js",
     "lint": "eslint ."
   },
   "files": [
     "index.js"
   ],
-  "pre-commit": "test",
   "author": {
     "name": "stock3 AG",
     "email": "it@stock3.com"
@@ -48,7 +48,6 @@
     "eslint-plugin-prettier": "^5.2.1",
     "globals": "^15.13.0",
     "nock": "^13.5.6",
-    "pre-commit": "^1.2.2",
     "prettier": "^3.0.1"
   }
 }
