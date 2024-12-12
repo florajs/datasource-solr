@@ -1,7 +1,7 @@
 'use strict';
 
-const chai = require('chai');
-const { expect } = chai;
+const { after, afterEach, beforeEach, describe, it } = require('node:test');
+const assert = require('node:assert/strict');
 const nock = require('nock');
 
 const FloraSolr = require('../index');
@@ -22,52 +22,57 @@ describe('Flora SOLR DataSource', () => {
         });
     });
 
-    afterEach(function () {
-        if (!nock.isDone()) {
-            this.test.error(new Error('Not all nock interceptors were used!'));
-        }
-        nock.cleanAll();
-    });
-
+    afterEach(() => nock.cleanAll());
     after(() => nock.restore());
 
     describe('interface', () => {
         it('should export a query function', () => {
-            expect(dataSource.process).to.be.a('function');
+            assert.equal(typeof dataSource.process, 'function');
         });
 
         it('should export a prepare function', () => {
-            expect(dataSource.prepare).to.be.a('function');
+            assert.equal(typeof dataSource.prepare, 'function');
         });
     });
 
-    it('should send requests using POST method', () => {
-        nock(solrUrl).post(solrIndexPath).reply(200, testResponse);
-        dataSource.process({ collection: 'article' });
+    it('should send requests using POST method', async () => {
+        const scope = nock(solrUrl).post(solrIndexPath).query(true).reply(200, testResponse);
+
+        await dataSource.process({ collection: 'article' });
+
+        assert.ok(scope.isDone());
     });
 
-    it('should set content type to "application/x-www-form-urlencoded"', () => {
-        nock(solrUrl)
+    it('should set content type to "application/x-www-form-urlencoded"', async () => {
+        const scope = nock(solrUrl)
             .matchHeader('content-type', 'application/x-www-form-urlencoded')
             .post(solrIndexPath)
             .reply(200, testResponse);
-        dataSource.process({ collection: 'article' });
+
+        await dataSource.process({ collection: 'article' });
+
+        assert.ok(scope.isDone());
     });
 
-    it('should set response format to JSON', () => {
-        nock(solrUrl)
+    it('should set response format to JSON', async () => {
+        const scope = nock(solrUrl)
             .post(solrIndexPath, /wt=json/)
             .reply(200, testResponse);
 
-        dataSource.process({ collection: 'article' });
+        await dataSource.process({ collection: 'article' });
+
+        assert.ok(scope.isDone());
     });
 
-    it('should use "default" if no explicit server is specified', () => {
-        nock(solrUrl).post(solrIndexPath).reply(200, testResponse);
-        dataSource.process({ collection: 'article' });
+    it('should use "default" if no explicit server is specified', async () => {
+        const scope = nock(solrUrl).post(solrIndexPath).reply(200, testResponse);
+
+        await dataSource.process({ collection: 'article' });
+
+        assert.ok(scope.isDone());
     });
 
-    it('should support multiple servers', () => {
+    it('should support multiple servers', async () => {
         const floraRequests = [{ collection: 'archive' }, { server: 'other', collection: 'awesome-index' }];
         const ds = new FloraSolr(api, {
             servers: {
@@ -76,10 +81,13 @@ describe('Flora SOLR DataSource', () => {
             }
         });
 
-        nock('http://article.example.com').post('/solr/archive/select').reply(200, testResponse);
-        nock('http://other.example.com').post('/solr/awesome-index/select').reply(200, testResponse);
+        const articleScope = nock('http://article.example.com').post('/solr/archive/select').reply(200, testResponse);
+        const otherScope = nock('http://other.example.com').post('/solr/awesome-index/select').reply(200, testResponse);
 
-        return Promise.all(floraRequests.map((request) => ds.process(request)));
+        await Promise.all(floraRequests.map((request) => ds.process(request)));
+
+        assert.ok(articleScope.isDone());
+        assert.ok(otherScope.isDone());
     });
 
     describe('error handling', () => {
@@ -89,11 +97,12 @@ describe('Flora SOLR DataSource', () => {
             try {
                 await dataSource.process({ collection: 'article' });
             } catch (e) {
-                expect(e).to.have.property('message').and.to.contain('500');
+                assert.ok(Object.hasOwn(e, 'message'));
+                assert.ok(e.message.includes('500'));
                 return;
             }
 
-            throw new Error('Expected request to fail');
+            assert.fail('Expected request to fail');
         });
 
         it('should trigger error if response cannot be parsed', async () => {
@@ -102,14 +111,15 @@ describe('Flora SOLR DataSource', () => {
             try {
                 await dataSource.process({ collection: 'article' });
             } catch (e) {
-                expect(e).to.have.property('message').and.to.contain(`I'm a Teapot`);
+                assert.ok(Object.hasOwn(e, 'message'));
+                assert.ok(e.message.includes(`I'm a Teapot`));
                 return;
             }
 
-            throw new Error('Expected request to fail');
+            assert.fail('Expected request to fail');
         });
 
-        xit("should handle request's error event", async () => {
+        it.skip("should handle request's error event", async () => {
             // nock can't fake request errors at the moment, so we have to make a real request to nonexistent host
             dataSource = new FloraSolr(api, {
                 servers: {
@@ -120,42 +130,48 @@ describe('Flora SOLR DataSource', () => {
             try {
                 await dataSource.process({ collection: 'article' });
             } catch (e) {
-                expect(e).to.have.property('code', 'ENOTFOUND');
+                assert.ok(Object.hasOwn(e, 'code'));
+                assert.equal(e.code, 'ENOTFOUND');
                 return;
             }
 
-            throw new Error('Expected request to fail');
+            assert.fail('Expected request to fail');
         });
 
         it('should trigger an error for non-existent server', async () => {
             try {
                 await dataSource.process({ server: 'non-existent', collection: 'article' });
             } catch (e) {
-                expect(e).to.have.property('message').and.to.contain('Server "non-existent" not defined');
+                assert.ok(Object.hasOwn(e, 'message'));
+                assert.ok(e.message.includes('Server "non-existent" not defined'));
                 return;
             }
 
-            throw new Error('Expected request to fail');
+            assert.fail('Expected request to fail');
         });
     });
 
     describe('attributes', () => {
-        it('should set requested attributes', () => {
-            nock(solrUrl)
+        it('should set requested attributes', async () => {
+            const scope = nock(solrUrl)
                 .post(solrIndexPath, /fl=id%2Cname%2Cdate/)
                 .reply(200, testResponse);
 
-            dataSource.process({ collection: 'article', attributes: ['id', 'name', 'date'] });
+            await dataSource.process({ collection: 'article', attributes: ['id', 'name', 'date'] });
+
+            assert.ok(scope.isDone());
         });
     });
 
     describe('filters', () => {
-        it('should send "*:*" if no filter is set', () => {
-            nock(solrUrl)
+        it('should send "*:*" if no filter is set', async () => {
+            const scope = nock(solrUrl)
                 .post(solrIndexPath, (body) => body?.q === '*:*')
                 .reply(200, testResponse);
 
-            dataSource.process({ collection: 'article' });
+            await dataSource.process({ collection: 'article' });
+
+            assert.ok(scope.isDone());
         });
 
         // test conversion of boolean values
@@ -163,46 +179,52 @@ describe('Flora SOLR DataSource', () => {
             [false, 0],
             [true, 1]
         ].forEach(([booleanValue, conversionTarget]) => {
-            it('should transform boolean ' + booleanValue + ' value to ' + conversionTarget + '', () => {
+            it('should transform boolean ' + booleanValue + ' value to ' + conversionTarget + '', async () => {
                 const request = {
                     collection: 'article',
                     filter: [[{ attribute: 'foo', operator: 'equal', value: booleanValue }]]
                 };
 
-                nock(solrUrl)
+                const scope = nock(solrUrl)
                     .post(solrIndexPath, (body) => body?.q === `(foo:${conversionTarget})`)
                     .reply(200, testResponse);
 
-                dataSource.process(request);
+                await dataSource.process(request);
+
+                assert.ok(scope.isDone());
             });
         });
 
-        it('should support arrays', () => {
+        it('should support arrays', async () => {
             const request = {
                 collection: 'article',
                 filter: [[{ attribute: 'foo', operator: 'equal', value: [1, 3, 5, 7] }]]
             };
 
-            nock(solrUrl)
+            const scope = nock(solrUrl)
                 .post(solrIndexPath, (body) => body?.q === '(foo:(1 OR 3 OR 5 OR 7))')
                 .reply(200, testResponse);
 
-            dataSource.process(request);
+            await dataSource.process(request);
+
+            assert.ok(scope.isDone());
         });
 
         ['\\', '/', '+', '-', '&', '|', '!', '(', ')', '{', '}', '[', ']', '^', '"', '~', '*', '?', ':'].forEach(
             (character) => {
-                it('should escape special character ' + character, () => {
+                it('should escape special character ' + character, async () => {
                     const request = {
                         collection: 'article',
                         filter: [[{ attribute: 'foo', operator: 'equal', value: character + 'bar' }]]
                     };
 
-                    nock(solrUrl)
+                    const scope = nock(solrUrl)
                         .post(solrIndexPath, (body) => body?.q === `(foo:\\${character}bar)`)
                         .reply(200, testResponse);
 
-                    dataSource.process(request);
+                    await dataSource.process(request);
+
+                    assert.ok(scope.isDone());
                 });
             }
         );
@@ -253,14 +275,16 @@ describe('Flora SOLR DataSource', () => {
                     solrFilter: '(foo:[1 TO 3})'
                 }
             ].forEach(({ description, floraFilter, solrFilter }) => {
-                it(description, () => {
+                it(description, async () => {
                     const request = { collection: 'article', filter: floraFilter };
 
-                    nock(solrUrl)
+                    const scope = nock(solrUrl)
                         .post(solrIndexPath, (body) => body?.q === solrFilter)
                         .reply(200, testResponse);
 
-                    dataSource.process(request);
+                    await dataSource.process(request);
+
+                    assert.ok(scope.isDone());
                 });
             });
 
@@ -279,29 +303,33 @@ describe('Flora SOLR DataSource', () => {
                         ]
                     };
 
-                    nock(solrUrl)
+                    const scope = nock(solrUrl)
                         .post(solrIndexPath, (body) => body?.q === solrFilter)
                         .reply(200, testResponse);
 
-                    dataSource.process(request);
+                    await dataSource.process(request);
+
+                    assert.ok(scope.isDone());
                 });
             });
         });
 
-        it('should transform single filters', () => {
+        it('should transform single filters', async () => {
             const request = {
                 collection: 'article',
                 filter: [[{ attribute: 'foo', operator: 'equal', value: 'foo' }]]
             };
 
-            nock(solrUrl)
+            const scope = nock(solrUrl)
                 .post(solrIndexPath, (body) => body?.q === '(foo:foo)')
                 .reply(200, testResponse);
 
-            dataSource.process(request);
+            await dataSource.process(request);
+
+            assert.ok(scope.isDone());
         });
 
-        it('should transform complex filters', () => {
+        it('should transform complex filters', async () => {
             const request = {
                 collection: 'article',
                 search: 'foo bar',
@@ -314,17 +342,19 @@ describe('Flora SOLR DataSource', () => {
                 ]
             };
 
-            nock(solrUrl)
+            const scope = nock(solrUrl)
                 .post(
                     solrIndexPath,
                     (body) => body?.q === 'foo bar AND ((authorId:1337 AND typeId:4711) OR (status:future))'
                 )
                 .reply(200, testResponse);
 
-            dataSource.process(request);
+            await dataSource.process(request);
+
+            assert.ok(scope.isDone());
         });
 
-        it('should support composite key filters', () => {
+        it('should support composite key filters', async () => {
             const request = {
                 collection: 'awesome_index',
                 filter: [
@@ -342,7 +372,7 @@ describe('Flora SOLR DataSource', () => {
                 ]
             };
 
-            nock(solrUrl)
+            const scope = nock(solrUrl)
                 .post(
                     '/solr/awesome_index/select',
                     (body) =>
@@ -351,7 +381,9 @@ describe('Flora SOLR DataSource', () => {
                 )
                 .reply(200, testResponse);
 
-            dataSource.process(request);
+            await dataSource.process(request);
+
+            assert.ok(scope.isDone());
         });
 
         Object.entries({
@@ -362,137 +394,155 @@ describe('Flora SOLR DataSource', () => {
             lessOrEqual: '(date:[* TO 2015\\-12\\-31])',
             notEqual: '(-date:2015\\-12\\-31)'
         }).forEach(([operator, solrFilter]) => {
-            it('should support "' + operator + '" filters', () => {
+            it('should support "' + operator + '" filters', async () => {
                 const request = {
                     collection: 'article',
                     filter: [[{ attribute: 'date', operator: operator, value: '2015-12-31' }]]
                 };
 
-                nock(solrUrl)
+                const scope = nock(solrUrl)
                     .post('/solr/article/select', (body) => body?.q === solrFilter)
                     .reply(200, testResponse);
 
-                dataSource.process(request);
+                await dataSource.process(request);
+
+                assert.ok(scope.isDone());
             });
         });
 
-        it('should append additional query parameters', () => {
+        it('should append additional query parameters', async () => {
             const request = {
                 collection: 'awesome_index',
                 queryAddition: '_val_:"product(assetClassBoost,3)"\n_val_:"product(importance,50)"'
             };
 
-            nock(solrUrl)
+            const scope = nock(solrUrl)
                 .post(
                     '/solr/awesome_index/select',
                     (body) => body?.q === '_val_:"product(assetClassBoost,3)" _val_:"product(importance,50)"'
                 )
                 .reply(200, testResponse);
 
-            dataSource.process(request);
+            await dataSource.process(request);
+
+            assert.ok(scope.isDone());
         });
     });
 
     describe('full-text search', () => {
-        it('should add search term to query', () => {
+        it('should add search term to query', async () => {
             const request = {
                 collection: 'article',
                 search: 'fo(o)bar'
             };
 
-            nock(solrUrl)
+            const scope = nock(solrUrl)
                 .post(solrIndexPath, (body) => body?.q === 'fo\\(o\\)bar')
                 .reply(200, testResponse);
 
-            dataSource.process(request);
+            await dataSource.process(request);
+
+            assert.ok(scope.isDone());
         });
 
-        it('should support additional filter(s)', () => {
+        it('should support additional filter(s)', async () => {
             const request = {
                 collection: 'article',
                 search: 'foo bar',
                 filter: [[{ attribute: 'authorId', operator: 'equal', value: 1337 }]]
             };
 
-            nock(solrUrl)
+            const scope = nock(solrUrl)
                 .post(solrIndexPath, (body) => body?.q === 'foo bar AND (authorId:1337)')
                 .reply(200, testResponse);
 
-            dataSource.process(request);
+            await dataSource.process(request);
+
+            assert.ok(scope.isDone());
         });
 
-        it('should ignore empty search terms', () => {
+        it('should ignore empty search terms', async () => {
             const request = {
                 collection: 'article',
                 search: ' ',
                 filter: [[{ attribute: 'authorId', operator: 'equal', value: 1337 }]]
             };
 
-            nock(solrUrl)
+            const scope = nock(solrUrl)
                 .post(solrIndexPath, (body) => body?.q === '(authorId:1337)')
                 .reply(200, testResponse);
 
-            dataSource.process(request);
+            await dataSource.process(request);
+
+            assert.ok(scope.isDone());
         });
 
-        it('should search in fields', () => {
+        it('should search in fields', async () => {
             const request = {
                 collection: 'article',
                 search: 'title:foo bar',
                 allowedSearchFields: 'title'
             };
 
-            nock(solrUrl)
+            const scope = nock(solrUrl)
                 .post(solrIndexPath, (body) => body?.q === '(title:"foo bar")')
                 .reply(200, testResponse);
 
-            dataSource.process(request);
+            await dataSource.process(request);
+
+            assert.ok(scope.isDone());
         });
 
-        it('should fallback to fulltext search if field is not allowed', () => {
+        it('should fallback to fulltext search if field is not allowed', async () => {
             const request = {
                 collection: 'article',
                 search: 'nonallowedfield:foobar',
                 allowedSearchFields: 'title'
             };
 
-            nock(solrUrl)
+            const scope = nock(solrUrl)
                 .post(solrIndexPath, (body) => body?.q === 'nonallowedfield\\:foobar')
                 .reply(200, testResponse);
 
-            dataSource.process(request);
+            await dataSource.process(request);
+
+            assert.ok(scope.isDone());
         });
 
         describe('reserved keywords', () => {
             ['AND', 'NOT', 'OR'].forEach((keyword) => {
-                it(`should lowercase "${keyword}" keyword`, () => {
+                it(`should lowercase "${keyword}" keyword`, async () => {
                     const request = { collection: 'article', search: keyword };
 
-                    nock(solrUrl)
+                    const scope = nock(solrUrl)
                         .post(solrIndexPath, (body) => body?.q === `${keyword.toLowerCase()}`)
                         .reply(200, testResponse);
 
-                    dataSource.process(request);
+                    await dataSource.process(request);
+
+                    assert.ok(scope.isDone());
                 });
             });
         });
     });
 
     describe('order', () => {
-        it('single criterion', () => {
+        it('single criterion', async () => {
             const request = {
                 collection: 'article',
                 order: [{ attribute: 'foo', direction: 'asc' }]
             };
 
-            nock(solrUrl)
+            const scope = nock(solrUrl)
                 .post(solrIndexPath, /sort=foo%20asc/)
                 .reply(200, testResponse);
 
-            dataSource.process(request);
+            await dataSource.process(request);
+
+            assert.ok(scope.isDone());
         });
 
-        it('multiple criteria', () => {
+        it('multiple criteria', async () => {
             const request = {
                 collection: 'article',
                 order: [
@@ -501,34 +551,40 @@ describe('Flora SOLR DataSource', () => {
                 ]
             };
 
-            nock(solrUrl)
+            const scope = nock(solrUrl)
                 .post(solrIndexPath, /sort=foo%20asc%2Cbar%20desc/)
                 .reply(200, testResponse);
 
-            dataSource.process(request);
+            await dataSource.process(request);
+
+            assert.ok(scope.isDone());
         });
     });
 
     describe('pagination', () => {
-        it('should set limit', () => {
-            nock(solrUrl)
+        it('should set limit', async () => {
+            const scope = nock(solrUrl)
                 .post(solrIndexPath, /rows=15/)
                 .reply(200, testResponse);
 
-            dataSource.process({ collection: 'article', limit: 15 });
+            await dataSource.process({ collection: 'article', limit: 15 });
+
+            assert.ok(scope.isDone());
         });
 
-        it('should overwrite SOLR default limit for sub-resource processing', () => {
-            nock(solrUrl)
+        it('should overwrite SOLR default limit for sub-resource processing', async () => {
+            const scope = nock(solrUrl)
                 .post(solrIndexPath, (body) => body.rows && body.rows === '1000000')
                 .reply(200, testResponse);
 
             // no explicit limit set
-            dataSource.process({ collection: 'article' });
+            await dataSource.process({ collection: 'article' });
+
+            assert.ok(scope.isDone());
         });
 
-        it('should set page', () => {
-            nock(solrUrl)
+        it('should set page', async () => {
+            const scope = nock(solrUrl)
                 // only return sorted pagination params because they can appear in any order
                 .filteringRequestBody((body) => {
                     const params = require('querystring').parse(body);
@@ -546,12 +602,14 @@ describe('Flora SOLR DataSource', () => {
                 .post(solrIndexPath, /rows=10&start=20/)
                 .reply(200, testResponse);
 
-            dataSource.process({ collection: 'article', limit: 10, page: 3 });
+            await dataSource.process({ collection: 'article', limit: 10, page: 3 });
+
+            assert.ok(scope.isDone());
         });
     });
 
     // https://github.com/nock/nock/issues/506
-    xdescribe('timeout', () => {
+    describe.skip('timeout', () => {
         afterEach(() => nock.abortPendingRequests());
 
         describe('defaults', () => {
@@ -561,11 +619,12 @@ describe('Flora SOLR DataSource', () => {
                 try {
                     await dataSource.process({ collection: 'article' });
                 } catch (e) {
-                    expect(e).to.have.property('code', 'ETIMEDOUT');
+                    assert.ok(Object.hasOwn(e, 'code'));
+                    assert.equal(e.code, 'ETIMEDOUT');
                     return;
                 }
 
-                throw new Error('Expected request to fail');
+                assert.fail('Expected request to fail');
             });
 
             it('should set request timeout to 10 seconds', async () => {
@@ -574,11 +633,12 @@ describe('Flora SOLR DataSource', () => {
                 try {
                     await dataSource.process({ collection: 'article' });
                 } catch (e) {
-                    expect(e).to.have.property('code', 'ECONNRESET');
+                    assert.ok(Object.hasOwn(e, 'code'));
+                    assert.equal(e.code, 'ECONNRESET');
                     return;
                 }
 
-                throw new Error('Expected request to fail');
+                assert.fail('Expected request to fail');
             });
         });
 
@@ -598,14 +658,15 @@ describe('Flora SOLR DataSource', () => {
                 try {
                     await ds.process({ collection: 'article' });
                 } catch (e) {
-                    expect(e).to.have.property('code', 'ETIMEDOUT');
+                    assert.ok(Object.hasOwn(e, 'code'));
+                    assert.equal(e.code, 'ETIMEDOUT');
                     return;
                 }
 
-                throw new Error('Expected request to fail');
+                assert.fail('Expected request to fail');
             });
 
-            xit('should overwrite default request timeout', async () => {
+            it.skip('should overwrite default request timeout', async () => {
                 const ds = new FloraSolr(api, {
                     servers: {
                         default: {
@@ -620,58 +681,69 @@ describe('Flora SOLR DataSource', () => {
                 try {
                     await ds.process({ collection: 'article' });
                 } catch (e) {
-                    expect(e).to.have.property('code', 'ECONNRESET');
+                    assert.ok(Object.hasOwn(e, 'code'));
+                    assert.equal(e.code, 'ECONNRESET');
                     return;
                 }
 
-                throw new Error('Expected request to fail');
+                assert.fail('Expected request to fail');
             });
         });
     });
 
     describe('limitPer', () => {
-        it('should activate result grouping', () => {
-            nock(solrUrl)
+        it('should activate result grouping', async () => {
+            const scope = nock(solrUrl)
                 .post(solrIndexPath, (body) => body.group && body.group === 'true')
                 .reply(200, testResponse);
 
-            dataSource.process({ collection: 'article', limitPer: 'seriesId' });
+            await dataSource.process({ collection: 'article', limitPer: 'seriesId' });
+
+            assert.ok(scope.isDone());
         });
 
-        it('should use limitPer as group.field parameter', () => {
-            nock(solrUrl)
+        it('should use limitPer as group.field parameter', async () => {
+            const scope = nock(solrUrl)
                 .post(solrIndexPath, (body) => body['group.field'] && body['group.field'] === 'seriesId')
                 .reply(200, testResponse);
 
-            dataSource.process({ collection: 'article', limitPer: 'seriesId' });
+            await dataSource.process({ collection: 'article', limitPer: 'seriesId' });
+
+            assert.ok(scope.isDone());
         });
 
-        it('should return flat list instead of groups', () => {
-            nock(solrUrl)
+        it('should return flat list instead of groups', async () => {
+            const scope = nock(solrUrl)
                 .post(solrIndexPath, (body) => body['group.main'] === 'true' && body['group.format'] === 'simple')
                 .reply(200, testResponse);
 
-            dataSource.process({ collection: 'article', limitPer: 'seriesId' });
+            await dataSource.process({ collection: 'article', limitPer: 'seriesId' });
+
+            assert.ok(scope.isDone());
         });
 
-        it('should set limit', () => {
-            nock(solrUrl)
+        it('should set limit', async () => {
+            const scope = nock(solrUrl)
                 .post(solrIndexPath, (body) => body['group.limit'] === '3' && body.rows === '1000000')
                 .reply(200, testResponse);
 
-            dataSource.process({ collection: 'article', limitPer: 'seriesId', limit: 3 });
+            await dataSource.process({ collection: 'article', limitPer: 'seriesId', limit: 3 });
+
+            assert.ok(scope.isDone());
         });
 
-        it('should not set group sort order', () => {
-            nock(solrUrl)
+        it('should not set group sort order', async () => {
+            const scope = nock(solrUrl)
                 .post(solrIndexPath, (body) => !Object.prototype.hasOwnProperty.call(body, 'group.sort'))
                 .reply(200, testResponse);
 
-            dataSource.process({
+            await dataSource.process({
                 collection: 'article',
                 limitPer: 'seriesId',
                 order: [{ attribute: 'date', direction: 'desc' }]
             });
+
+            assert.ok(scope.isDone());
         });
     });
 });

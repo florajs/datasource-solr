@@ -4,7 +4,7 @@
   "description": "Solr connection for Flora",
   "main": "index.js",
   "scripts": {
-    "test": "eslint . && mocha",
+    "test": "eslint . && node --test test/*.spec.js",
     "lint": "eslint ."
   },
   "files": [
@@ -43,15 +43,10 @@
     "@florajs/errors": "^4.0.0"
   },
   "devDependencies": {
-    "@types/chai": "^4.3.5",
-    "@types/mocha": "^10.0.1",
-    "@types/nock": "^11.1.0",
-    "chai": "^4.3.7",
     "eslint": "^8.46.0",
     "eslint-config-prettier": "^8.10.0",
     "eslint-plugin-prettier": "^5.0.0",
-    "mocha": "^10.2.0",
-    "nock": "^13.3.2",
+    "nock": "^13.5.6",
     "pre-commit": "^1.2.2",
     "prettier": "^3.0.1"
   }
