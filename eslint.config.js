@@ -25,6 +25,6 @@ module.exports = [
         }
     },
     {
-        files: ['test/**/*.spec.js']
+        ignores: ['node_modules/']
     }
 ];
