@@ -64,6 +64,15 @@ describe('Flora SOLR DataSource', () => {
         assert.ok(scope.isDone());
     });
 
+    it('should parse Solr response', async () => {
+        const scope = nock(solrUrl).post(solrIndexPath).reply(200, testResponse);
+
+        const response = await dataSource.process({ collection: 'article' });
+
+        assert.deepEqual(response, { totalCount: 0, data: [] });
+        assert.ok(scope.isDone());
+    });
+
     it('should use "default" if no explicit server is specified', async () => {
         const scope = nock(solrUrl).post(solrIndexPath).reply(200, testResponse);
 
@@ -90,64 +99,38 @@ describe('Flora SOLR DataSource', () => {
         assert.ok(otherScope.isDone());
     });
 
-    describe('error handling', () => {
+    describe('error handling', async () => {
         it('should trigger error if status code >= 400', async () => {
             nock(solrUrl).post(solrIndexPath).reply(500, '{}');
 
-            try {
-                await dataSource.process({ collection: 'article' });
-            } catch (e) {
-                assert.ok(Object.hasOwn(e, 'message'));
-                assert.ok(e.message.includes('500'));
-                return;
-            }
-
-            assert.fail('Expected request to fail');
+            await assert.rejects(() => dataSource.process({ collection: 'article' }), {
+                name: 'Error',
+                message: /\b500\b/
+            });
         });
 
         it('should trigger error if response cannot be parsed', async () => {
             nock(solrUrl).post(solrIndexPath).reply(418, '<p>Something went wrong</p>');
 
-            try {
-                await dataSource.process({ collection: 'article' });
-            } catch (e) {
-                assert.ok(Object.hasOwn(e, 'message'));
-                assert.ok(e.message.includes(`I'm a Teapot`));
-                return;
-            }
-
-            assert.fail('Expected request to fail');
-        });
-
-        it.skip("should handle request's error event", async () => {
-            // nock can't fake request errors at the moment, so we have to make a real request to nonexistent host
-            dataSource = new FloraSolr(api, {
-                servers: {
-                    default: { urls: ['http://doesnotexists.localhost/solr/'] }
+            await assert.rejects(
+                () => dataSource.process({ collection: 'article' }),
+                (err) => {
+                    assert.equal(err.name, 'Error');
+                    assert.ok(err.message.includes(`I'm a Teapot`));
+                    return true;
                 }
-            });
-
-            try {
-                await dataSource.process({ collection: 'article' });
-            } catch (e) {
-                assert.ok(Object.hasOwn(e, 'code'));
-                assert.equal(e.code, 'ENOTFOUND');
-                return;
-            }
-
-            assert.fail('Expected request to fail');
+            );
         });
 
         it('should trigger an error for non-existent server', async () => {
-            try {
-                await dataSource.process({ server: 'non-existent', collection: 'article' });
-            } catch (e) {
-                assert.ok(Object.hasOwn(e, 'message'));
-                assert.ok(e.message.includes('Server "non-existent" not defined'));
-                return;
-            }
-
-            assert.fail('Expected request to fail');
+            await assert.rejects(
+                () => dataSource.process({ server: 'non-existent', collection: 'article' }),
+                (err) => {
+                    assert.equal(err.name, 'Error');
+                    assert.ok(err.message.includes('Server "non-existent" not defined'));
+                    return true;
+                }
+            );
         });
     });
 
@@ -608,87 +591,42 @@ describe('Flora SOLR DataSource', () => {
         });
     });
 
-    // https://github.com/nock/nock/issues/506
-    describe.skip('timeout', () => {
+    // https://github.com/nodejs/node/issues/60509
+    describe.skip('timeouts', () => {
         afterEach(() => nock.abortPendingRequests());
 
-        describe('defaults', () => {
-            it('should set connect timeout', async () => {
-                nock(solrUrl).post(solrIndexPath).delayConnection(15000).reply(200, testResponse);
-
-                try {
-                    await dataSource.process({ collection: 'article' });
-                } catch (e) {
-                    assert.ok(Object.hasOwn(e, 'code'));
-                    assert.equal(e.code, 'ETIMEDOUT');
-                    return;
-                }
-
-                assert.fail('Expected request to fail');
-            });
-
-            it('should set request timeout to 10 seconds', async () => {
-                nock(solrUrl).post(solrIndexPath).delayBody(11000).reply(200, testResponse);
-
-                try {
-                    await dataSource.process({ collection: 'article' });
-                } catch (e) {
-                    assert.ok(Object.hasOwn(e, 'code'));
-                    assert.equal(e.code, 'ECONNRESET');
-                    return;
-                }
-
-                assert.fail('Expected request to fail');
-            });
-        });
-
-        describe('config options', () => {
-            it('should overwrite default connect timeout', async () => {
-                const ds = new FloraSolr(api, {
+        Object.entries({
+            'should set default timeout to 5 seconds': [
+                new FloraSolr(api, {
                     servers: {
-                        default: {
-                            urls: ['http://example.com/solr/'],
-                            connectTimeout: 100
-                        }
+                        default: { urls: ['http://example.com/solr/'] }
                     }
-                });
-
-                nock(solrUrl).post(solrIndexPath).delayConnection(200).reply(200, testResponse);
-
-                try {
-                    await ds.process({ collection: 'article' });
-                } catch (e) {
-                    assert.ok(Object.hasOwn(e, 'code'));
-                    assert.equal(e.code, 'ETIMEDOUT');
-                    return;
-                }
-
-                assert.fail('Expected request to fail');
-            });
-
-            it.skip('should overwrite default request timeout', async () => {
-                const ds = new FloraSolr(api, {
+                }),
+                6000
+            ],
+            'should overwrite (default) timeout': [
+                new FloraSolr(api, {
                     servers: {
-                        default: {
-                            urls: ['http://example.com/solr/'],
-                            requestTimeout: 100
-                        }
+                        default: { urls: ['http://example.com/solr/'], timeout: 100 }
                     }
+                }),
+                1000
+            ]
+        }).forEach(([description, [ds, timeoutMs]]) =>
+            it(description, async (ctx) => {
+                ctx.mock.timers.enable();
+                nock(solrUrl).post(solrIndexPath).delay(timeoutMs).reply(200, testResponse);
+
+                const promise = ds.process({ collection: 'article' });
+                ctx.mock.timers.tick(timeoutMs);
+
+                await assert.rejects(promise, {
+                    name: 'TimeoutError',
+                    message: 'The operation was aborted due to timeout'
                 });
-
-                nock(solrUrl).post(solrIndexPath).delayBody(200).reply(200, testResponse);
-
-                try {
-                    await ds.process({ collection: 'article' });
-                } catch (e) {
-                    assert.ok(Object.hasOwn(e, 'code'));
-                    assert.equal(e.code, 'ECONNRESET');
-                    return;
-                }
-
-                assert.fail('Expected request to fail');
-            });
-        });
+                ctx.mock.timers.reset();
+            })
+        );
     });
 
     describe('limitPer', () => {
