@@ -1,6 +1,5 @@
 'use strict';
 
-const http = require('http');
 const querystring = require('querystring');
 
 const { ImplementationError } = require('@florajs/errors');
@@ -185,14 +184,6 @@ function buildSolrOrderString(floraOrders) {
     return floraOrders.map((order) => order.attribute + ' ' + order.direction).join(',');
 }
 
-function parseData(str) {
-    try {
-        return JSON.parse(str);
-    } catch (e) {
-        return new Error('Could not parse response: ' + str);
-    }
-}
-
 function prepareQueryAddition(queryAdditions) {
     return queryAdditions
         .replace(/[\r\n]+/g, ' ')
@@ -224,50 +215,24 @@ function getUrlGenerators(servers) {
  *
  * @param {string} requestUrl
  * @param {Object} params
- * @param {Object} requestOptions
- * @param {Agent} agent
+ * @param {number} timeout
  * @returns {Promise}
  * @private
  */
-function querySolr(requestUrl, params, requestOptions, agent) {
-    return new Promise((resolve, reject) => {
-        const options = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            timeout: requestOptions.connectTimeout,
-            agent
-        };
-
-        const req = http.request(requestUrl, options, (res) => {
-            const chunks = [];
-
-            res.on('data', (chunk) => chunks.push(chunk));
-
-            res.on('end', () => {
-                const data = parseData(Buffer.concat(chunks).toString('utf8'));
-
-                if (res.statusCode >= 400 || data instanceof Error) {
-                    const error = new Error(`Solr error: ${res.statusCode} ${http.STATUS_CODES[res.statusCode]}`);
-                    return reject(error);
-                }
-
-                return resolve({ totalCount: data.response.numFound, data: data.response.docs });
-            });
-        });
-
-        req.write(querystring.stringify(params)); // add params to POST body
-
-        req.on('error', (err) => {
-            err.message = `Solr error: ${err.message} (${options.host})`;
-            reject(err);
-        });
-        req.on('timeout', () => {
-            req.destroy();
-            reject(new Error('Request timed out'));
-        });
-
-        req.end();
+async function querySolr(requestUrl, params, timeout) {
+    const response = await fetch(requestUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: querystring.stringify(params),
+        signal: AbortSignal.timeout(timeout)
     });
+
+    if (!response.ok) {
+        throw new Error(`Solr error: ${response.status} - ${response.statusText}`);
+    }
+
+    const { numFound, docs } = (await response.json()).response;
+    return { totalCount: numFound, data: docs };
 }
 
 function prepareSearchTerm(request) {
@@ -301,12 +266,6 @@ class DataSource {
         this._urls = getUrlGenerators(config.servers);
         this._status = config._status;
         delete config._status;
-
-        this._agent = new http.Agent({
-            maxSockets: 5,
-            keepAlive: true,
-            keepAliveMsecs: 10000
-        });
     }
 
     /**
@@ -360,12 +319,8 @@ class DataSource {
         if (request._explain) Object.assign(request._explain, { url: requestUrl, params });
         if (this._status) this._status.increment('dataSourceQueries');
 
-        const requestOpts = {
-            connectTimeout: serverOpts[server].connectTimeout || 2000,
-            requestTimeout: serverOpts[server].requestTimeout || 5000
-        };
-
-        return querySolr(requestUrl, params, requestOpts, this._agent);
+        const timeout = serverOpts[server].timeout || 5000;
+        return querySolr(requestUrl, params, timeout);
     }
 
     /**
