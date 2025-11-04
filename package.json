@@ -43,11 +43,11 @@
     "@florajs/errors": "^4.0.0"
   },
   "devDependencies": {
-    "eslint": "^9.16.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-prettier": "^5.2.1",
-    "globals": "^15.13.0",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "globals": "^16.5.0",
     "nock": "^14.0.10",
-    "prettier": "^3.0.1"
+    "prettier": "^3.6.2"
   }
 }
