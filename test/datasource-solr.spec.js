@@ -517,7 +517,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             const scope = nock(solrUrl)
-                .post(solrIndexPath, /sort=foo%20asc/)
+                .post(solrIndexPath, ({ sort }) => sort === 'foo asc')
                 .reply(200, testResponse);
 
             await dataSource.process(request);
@@ -535,7 +535,7 @@ describe('Flora SOLR DataSource', () => {
             };
 
             const scope = nock(solrUrl)
-                .post(solrIndexPath, /sort=foo%20asc%2Cbar%20desc/)
+                .post(solrIndexPath, ({ sort }) => sort === 'foo asc,bar desc')
                 .reply(200, testResponse);
 
             await dataSource.process(request);

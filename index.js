@@ -1,7 +1,5 @@
 'use strict';
 
-const querystring = require('querystring');
-
 const { ImplementationError } = require('@florajs/errors');
 
 const SUPPORTED_FILTERS = ['equal', 'notEqual', 'less', 'lessOrEqual', 'greater', 'greaterOrEqual', 'range'];
@@ -223,7 +221,7 @@ async function querySolr(requestUrl, params, timeout) {
     const response = await fetch(requestUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: querystring.stringify(params),
+        body: new URLSearchParams(params).toString(),
         signal: AbortSignal.timeout(timeout)
     });
 
