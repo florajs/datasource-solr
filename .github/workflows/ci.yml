@@ -19,7 +19,7 @@ jobs:
       matrix:
         node: ['20', '22', '24']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Setup node ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
