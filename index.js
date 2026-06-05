@@ -49,11 +49,7 @@ function rangify(filters) {
         return filters;
     }
 
-    const groupedAttrs = filters.reduce((acc, filter) => {
-        acc[filter.attribute] = acc[filter.attribute] || [];
-        acc[filter.attribute].push(filter);
-        return acc;
-    }, {});
+    const groupedAttrs = Object.groupBy(filters, (filter) => filter.attribute);
     const rangeQueries = Object.values(groupedAttrs).filter((filters) => {
         if (filters.length !== 2) return false;
 
