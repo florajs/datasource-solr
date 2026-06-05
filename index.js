@@ -20,15 +20,15 @@ const NO_LIMIT = 1000000;
  * @private
  */
 function createRangeFilter(attributeFilters) {
-    // make sure greaterOrEqual filter comes first
-    attributeFilters.sort((filter) => (['greater', 'greaterOrEqual'].includes(filter.operator) ? -1 : 1));
+    const lowerBoundFilter = attributeFilters.find(({ operator }) => ['greater', 'greaterOrEqual'].includes(operator));
+    const upperBoundFilter = attributeFilters.find(({ operator }) => ['less', 'lessOrEqual'].includes(operator));
 
     return {
-        attribute: attributeFilters[0].attribute,
+        attribute: lowerBoundFilter.attribute,
         operator: 'range',
-        lowerSolrRangeOperator: RANGE_OPERATOR_FILTER_MAPPING[attributeFilters[0].operator],
-        upperSolrRangeOperator: RANGE_OPERATOR_FILTER_MAPPING[attributeFilters[1].operator],
-        value: [attributeFilters[0].value, attributeFilters[1].value]
+        lowerSolrRangeOperator: RANGE_OPERATOR_FILTER_MAPPING[lowerBoundFilter.operator],
+        upperSolrRangeOperator: RANGE_OPERATOR_FILTER_MAPPING[upperBoundFilter.operator],
+        value: [lowerBoundFilter.value, upperBoundFilter.value]
     };
 }
 
